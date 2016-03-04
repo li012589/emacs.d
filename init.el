@@ -22,7 +22,7 @@
                    (*linux* nil)
                    (t nil)))
 
-(require 'init-modeline)
+;;(require 'init-modeline)
 (require 'cl-lib)
 (require 'init-compat)
 (require 'init-utils)
@@ -74,6 +74,7 @@
 (require 'init-ruby-mode)
 (require 'init-lisp)
 (require 'init-elisp)
+;; (require 'init-matlab)
 (require 'init-yasnippet)
 ;; Use bookmark instead
 (require 'init-zencoding-mode)
@@ -84,7 +85,7 @@
 (require 'init-moz)
 (require 'init-gtags)
 ;; use evil mode (vi key binding)
-(require 'init-evil)
+;; (require 'init-evil)
 (require 'init-sh)
 (require 'init-ctags)
 (require 'init-bbdb)
