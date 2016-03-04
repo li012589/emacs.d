@@ -1,5 +1,5 @@
-*Todo
+* Todo
 - add tex support
 - add matlab support
 
-*For more info, plz check README.org.old
+* For more info, plz check README.org.old
