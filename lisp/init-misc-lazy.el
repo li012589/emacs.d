@@ -1,4 +1,8 @@
 ;;; init-misc-lazy.el --- misc setup loaded later
+
+(setq auto-mode-alist
+      (cons '("\\.textile\\'" . textile-mode) auto-mode-alist))
+
 (transient-mark-mode t)
 
 (recentf-mode 1)
@@ -8,9 +12,6 @@
       auto-revert-verbose nil)
 
 (add-to-list 'auto-mode-alist '("\\.[Cc][Ss][Vv]\\'" . csv-mode))
-(autoload 'csv-mode "csv-mode" "Major mode for comma-separated value files." t)
-
-(autoload 'find-by-pinyin-dired "find-by-pinyin-dired" "" t)
 
 ;;----------------------------------------------------------------------------
 ;; Don't disable narrowing commands
@@ -22,13 +23,6 @@
 ;; But don't show trailing whitespace in SQLi, inf-ruby etc.
 (add-hook 'comint-mode-hook
           (lambda () (setq show-trailing-whitespace nil)))
-
-(autoload 'sos "sos" "search stackoverflow" t)
-
-;;----------------------------------------------------------------------------
-;; Fix per-window memory of buffer point positions
-;;----------------------------------------------------------------------------
-(global-pointback-mode)
 
 ;;----------------------------------------------------------------------------
 ;; Page break lines
@@ -42,31 +36,18 @@
        (lambda ()
          (concat (getenv "USER") " $ ")))
 
-;; Write backup files to own directory
-(if (not (file-exists-p (expand-file-name "~/.backups")))
-  (make-directory (expand-file-name "~/.backups")))
-(setq backup-by-coping t ; don't clobber symlinks
-      backup-directory-alist '(("." . "~/.backups"))
-      delete-old-versions t
-      version-control t  ;use versioned backups
-      kept-new-versions 6
-      kept-old-versions 2)
-
-;; Donot make backups of files, not safe
-;; @see https://github.com/joedicastro/dotfiles/tree/master/emacs
-(setq vc-make-backup-files nil)
 
 ;; I'm in Australia now, so I set the locale to "en_AU"
 (defun insert-date (prefix)
-    "Insert the current date. With prefix-argument, use ISO format. With
+  "Insert the current date. With prefix-argument, use ISO format. With
    two prefix arguments, write out the day and month name."
-    (interactive "P")
-    (let ((format (cond
-                   ((not prefix) "%d.%m.%Y")
-                   ((equal prefix '(4)) "%Y-%m-%d")
-                   ((equal prefix '(16)) "%d %B %Y")))
-          )
-      (insert (format-time-string format))))
+  (interactive "P")
+  (let ((format (cond
+                 ((not prefix) "%d.%m.%Y")
+                 ((equal prefix '(4)) "%Y-%m-%d")
+                 ((equal prefix '(16)) "%d %B %Y")))
+        )
+    (insert (format-time-string format))))
 
 ;;compute the length of the marked region
 (defun region-length ()
@@ -185,33 +166,13 @@ grab matched string, cssize them, and insert into kill ring"
 ;; }}
 
 ;; {{ direx
-(autoload 'direx:jump-to-directory "direx" "" t)
 (global-set-key (kbd "C-x C-j") 'direx:jump-to-directory)
 ;; }}
 
 (defun display-line-number ()
   "display current line number in mini-buffer"
   (interactive)
-  (let (l)
-    (setq l (line-number-at-pos))
-    (message "line number:%d" l)
-    ))
-
-(eval-after-load 'grep
-  '(progn
-     (dolist (v '("auto"
-                  "target"
-                  "node_modules"
-                  "bower_components"
-                  ".sass_cache"
-                  ".cache"
-                  ".git"
-                  ".cvs"
-                  ".svn"
-                  ".hg"
-                  "elpa"))
-       (add-to-list 'grep-find-ignored-directories v))
-     ))
+  (message "line number:%d" (line-number-at-pos)))
 
 ;; {{ unique lines
 (defun uniquify-all-lines-region (start end)
@@ -231,37 +192,11 @@ grab matched string, cssize them, and insert into kill ring"
   (uniquify-all-lines-region (point-min) (point-max)))
 ;; }}
 
-;; {{start dictionary lookup
-;; use below commands to create dicitonary
-;; mkdir -p ~/.stardict/dic
-;; # wordnet English => English
-;; curl http://abloz.com/huzheng/stardict-dic/dict.org/stardict-dictd_www.dict.org_wn-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic
-;; # Langdao Chinese => English
-;; curl http://abloz.com/huzheng/stardict-dic/zh_CN/stardict-langdao-ec-gb-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic
-;;
-(setq sdcv-dictionary-simple-list '("朗道英汉字典5.0"))
-(setq sdcv-dictionary-complete-list '("WordNet"))
-(autoload 'sdcv-search-pointer "sdcv" "show word explanation in buffer" t)
-(autoload 'sdcv-search-input+ "sdcv" "show word explanation in tooltip" t)
-(global-set-key (kbd "C-c ; b") 'sdcv-search-pointer)
-(global-set-key (kbd "C-c ; t") 'sdcv-search-input+)
-;; }}
-
 (defun insert-file-link-from-clipboard ()
   "Make sure the full path of file exist in clipboard. This command will convert
 The full path into relative path insert it as a local file link in org-mode"
   (interactive)
-  (let (str)
-    (with-temp-buffer
-      (paste-from-x-clipboard)
-      (setq str (buffer-string)))
-
-    ;; convert to relative path (relative to current buffer) if possible
-    (let ((m (string-match (file-name-directory (buffer-file-name)) str) ))
-        (if (and m (= 0 m ))
-            (setq str (substring str (length (file-name-directory (buffer-file-name))))))
-      (insert (format "[[file:%s]]" str))
-      )))
+  (insert (format "[[file:%s]]" (file-relative-name (my-gclip)))))
 
 (defun font-file-to-base64 (file)
   (let ((str "")
@@ -316,8 +251,7 @@ The full path into relative path insert it as a local file link in org-mode"
   (let ((rlt (format "%S" (get-text-property (point) 'face))))
     (kill-new rlt)
     (copy-yank-str rlt)
-    (message "%s => clipboard & yank ring" rlt)
-    ))
+    (message "%s => clipboard & yank ring" rlt)))
 
 (defun current-thing-at-point ()
   (interactive)
@@ -447,15 +381,9 @@ Current position is preserved."
 (setq midnight-mode t)
 
 (add-auto-mode 'tcl-mode "Portfile\\'")
-;;----------------------------------------------------------------------------
-;; Shift lines up and down with M-up and M-down
-;;----------------------------------------------------------------------------
-(move-text-default-bindings)
 
-(autoload 'vr/replace "visual-regexp")
-(autoload 'vr/query-replace "visual-regexp")
-;; if you use multiple-cursors, this is for you:
-(autoload 'vr/mc-mark "visual-regexp")
+;; Shift lines up and down with M-up and M-down
+(move-text-default-bindings)
 
 ;; {{go-mode
 (require 'go-mode-load)
@@ -490,15 +418,14 @@ Does not indent buffer, because it is used for a before-save-hook, and that
 might be bad."
   (interactive)
   (untabify (point-min) (point-max))
-  (delete-trailing-whitespace)
-  (set-buffer-file-coding-system 'utf-8))
+  (delete-trailing-whitespace))
 
 (defun cleanup-buffer ()
   "Perform a bunch of operations on the whitespace content of a buffer.
 Including indent-buffer, which should not be called automatically on save."
   (interactive)
   (cleanup-buffer-safe)
-  (indent-buffer))
+  (indent-region (point-min) (point-max)))
 
 ;; {{ save history
 ;; On Corp machines, I don't have permission to access history,
@@ -507,8 +434,24 @@ Including indent-buffer, which should not be called automatically on save."
  (when (file-writable-p (file-truename "~/.emacs.d/history"))
    (setq history-length 8000)
    (setq savehist-additional-variables '(search-ring regexp-search-ring kill-ring))
-   (savehist-mode 1))
- (message "Failed to access ~/.emacs.d/history"))
+   (savehist-mode 1)))
+;; }}
+
+;; {{ easygpg setup
+;; @see http://www.emacswiki.org/emacs/EasyPG#toc4
+(defadvice epg--start (around advice-epg-disable-agent disable)
+  "Make epg--start not able to find a gpg-agent"
+  (let ((agent (getenv "GPG_AGENT_INFO")))
+    (setenv "GPG_AGENT_INFO" nil)
+    ad-do-it
+    (setenv "GPG_AGENT_INFO" agent)))
+
+(unless (string-match-p "^gpg (GnuPG) 1.4"
+                        (shell-command-to-string (format "%s --version" epg-gpg-program)))
+
+  ;; `apt-get install pinentry-tty` if using emacs-nox
+  ;; Create `~/.gnupg/gpg-agent.conf' container one line `pinentry-program /usr/bin/pinentry-curses`
+  (setq epa-pinentry-mode 'loopback))
 ;; }}
 
 (provide 'init-misc-lazy)

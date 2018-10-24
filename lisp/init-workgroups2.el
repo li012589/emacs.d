@@ -6,27 +6,31 @@
 
 ;(workgroups-mode 1) ; put this one at the bottom of .emacs
 ;; by default, the sessions are saved in "~/.emacs_workgroups"
-(autoload 'wg-create-workgroup "workgroups2" nil t)
-
 (defun my-wg-switch-workgroup ()
   (interactive)
-  (let (group-names selected-group)
-    (unless (featurep 'workgroups2)
-      (require 'workgroups2))
-    (setq group-names
-          (mapcar (lambda (group)
-                    ;; re-shape list for the ivy-read
-                    (cons (wg-workgroup-name group) group))
-                  (wg-session-workgroup-list (read (f-read-text (file-truename wg-session-file))))))
-    (ivy-read "work groups" group-names
-              :action (lambda (group)
+  (unless (featurep 'workgroups2) (require 'workgroups2))
+  (unless (featurep 'ivy) (require 'ivy))
+  (let* ((group-names (mapcar (lambda (group)
+                                ;; re-shape list for the ivy-read
+                                (cons (wg-workgroup-name group) group))
+                              (wg-session-workgroup-list (read (f-read-text (file-truename wg-session-file)))))))
+
+    (ivy-read "work groups"
+              group-names
+              :action (lambda (e)
                         (wg-find-session-file wg-default-session-file)
-                        (wg-switch-to-workgroup group)))))
+                        ;; ivy8 & ivy9
+                        (if (stringp (car e)) (setq e (cdr e)))
+                        (wg-switch-to-workgroup e)))))
 
 (eval-after-load 'workgroups2
   '(progn
      ;; make sure wg-create-workgroup always success
      (defadvice wg-create-workgroup (around wg-create-workgroup-hack activate)
+       (unless (file-exists-p (wg-get-session-file))
+         (wg-reset t)
+         (wg-save-session t))
+
        (unless wg-current-session
          ;; code extracted from `wg-open-session'.
          ;; open session but do NOT load any workgroup.

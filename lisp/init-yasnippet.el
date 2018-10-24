@@ -10,17 +10,21 @@
 (yas-reload-all)
 (defun yasnippet-generic-setup-for-mode-hook ()
   (unless (is-buffer-file-temp)
-    ;; highlight FIXME/BUG/TODO in comment
     (yas-minor-mode 1)))
 
 (add-hook 'prog-mode-hook 'yasnippet-generic-setup-for-mode-hook)
 (add-hook 'text-mode-hook 'yasnippet-generic-setup-for-mode-hook)
+;; below modes does NOT inherit from prog-mode
 (add-hook 'cmake-mode-hook 'yasnippet-generic-setup-for-mode-hook)
+(add-hook 'web-mode-hook 'yasnippet-generic-setup-for-mode-hook)
+(add-hook 'scss-mode-hook 'yasnippet-generic-setup-for-mode-hook)
 
 (defun my-yas-reload-all ()
+  "Compile and reload yasnippets.  Run the command after adding new snippets."
   (interactive)
   (yas-compile-directory (file-truename "~/.emacs.d/snippets"))
-  (yas-reload-all))
+  (yas-reload-all)
+  (yas-minor-mode 1))
 
 (defun my-yas-field-to-statement(str sep)
   "If STR=='a.b.c' and SEP=' && ',
@@ -40,8 +44,8 @@
     (save-excursion
       (goto-char (point-min))
       ;; first line in email could be some hidden line containing NO to field
-      (setq str (buffer-substring-no-properties (point-min) (point-max))))
-    (message "str=%s" str)
+      (setq str (my-buffer-str)))
+    ;; (message "str=%s" str)
     (if (string-match "^To: \"?\\([a-zA-Z]+\\)" str)
         (setq rlt (capitalize (match-string 1 str))))
     ;; (message "rlt=%s" rlt)
@@ -71,7 +75,39 @@
     (setq case-fold-search old-case)
     (mapconcat 'identity rlt " ")))
 
-(autoload 'snippet-mode "yasnippet" "")
+(defun my-yas-escape-string (s)
+  (let* ((rlt (replace-regexp-in-string "'" "\\\\'" s)))
+    (setq rlt (replace-regexp-in-string "\"" "\\\\\"" rlt))
+    rlt))
+
+(defun my-read-n-from-kill-ring ()
+  (let* ((cands (subseq kill-ring 0 (min (read-number "fetch N `kill-ring'?" 1)
+                                         (length kill-ring)))))
+    (mapc (lambda (txt)
+            (set-text-properties 0 (length txt) nil txt)
+            txt)
+          cands)))
+
+(defun my-yas-get-var-list-from-kill-ring ()
+  "Variable name is among the `kill-ring'.  Multiple major modes supported."
+  (let* ((top-kill-ring (my-read-n-from-kill-ring))
+         rlt)
+    (cond
+     ((memq major-mode '(js-mode javascript-mode js2-mode js3-mode))
+      (setq rlt (mapconcat (lambda (i) (format "'%s=', %s" (my-yas-escape-string i) i)) top-kill-ring ", ")))
+     ((memq major-mode '(emacs-lisp-mode lisp-interaction-mode))
+      (setq rlt (concat (mapconcat (lambda (i) (format "%s=%%s" i)) top-kill-ring ", ")
+                        "\" "
+                        (mapconcat (lambda (i) (format "%s" i)) top-kill-ring " ")
+                        )))
+     ((memq major-mode '(c-mode c++-mode))
+      (setq rlt (concat (mapconcat (lambda (i) (format "%s=%%s" i)) top-kill-ring ", ")
+                        "\\n\", "
+                        (mapconcat (lambda (i) (format "%s" i)) top-kill-ring ", ")
+                        )))
+     (t (setq rlt "")))
+    rlt))
+
 (add-to-list 'auto-mode-alist '("\\.yasnippet\\'" . snippet-mode))
 
 (eval-after-load 'yasnippet
@@ -82,7 +118,6 @@
 
      ;; default hotkey `C-c C-s` is still valid
      ;; give yas-dropdown-prompt in yas/prompt-functions a chance
-     (require 'dropdown-list)
      (setq yas-prompt-functions '(yas-dropdown-prompt
                                   yas-ido-prompt
                                   yas-completing-prompt))
@@ -91,8 +126,7 @@
      ;; thanks to capitaomorte for providing the trick.
      (defadvice yas-insert-snippet (around use-completing-prompt activate)
        "Use `yas-completing-prompt' for `yas-prompt-functions' but only here..."
-       (let ((yas-prompt-functions '(yas-completing-prompt)))
-         ad-do-it))
-     ))
+       (let* ((yas-prompt-functions '(yas-completing-prompt)))
+         ad-do-it))))
 
 (provide 'init-yasnippet)

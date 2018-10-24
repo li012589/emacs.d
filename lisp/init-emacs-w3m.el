@@ -3,7 +3,7 @@
       w3m-file-name-coding-system 'utf-8
       w3m-input-coding-system 'utf-8
       w3m-output-coding-system 'utf-8
-      ;; emacs-w3m will test the imagick's support for png32
+      ;; emacs-w3m will test the ImageMagick support for png32
       ;; and create files named "png32:-" everywhere
       w3m-imagick-convert-program nil
       w3m-terminal-coding-system 'utf-8
@@ -13,7 +13,13 @@
       w3m-command-arguments       '("-F" "-cookie")
       w3m-mailto-url-function     'compose-mail
       browse-url-browser-function 'w3m
-      mm-text-html-renderer       'w3m
+      ;; use shr to view html mail which is dependent on libxml
+      ;; I prefer w3m. That's emacs 24.3+ default setup.
+      ;; If you prefer colored mail body and other advanced features,
+      ;; you can either comment out below line and let Emacs decide the
+      ;; best html mail rendering engine, or "(setq mm-text-html-renderer 'shr)"
+      ;; in "~/.gnus.el"
+      ;; mm-text-html-renderer 'w3m ; I prefer w3m
       w3m-use-toolbar t
       ;; show images in the browser
       ;; setq w3m-default-display-inline-images t
@@ -45,7 +51,7 @@
         ("java" "https://www.google.com.au/search?q=java+%s" utf-8)
         ;; financial dictionary
         ("f" "http://financial-dictionary.thefreedictionary.com/%s" utf-8)
-        ;; javascript seawrch on mozilla.org
+        ;; javascript search on mozilla.org
         ("j" "http://www.google.com.au/search?q=%s+site:developer.mozilla.org" utf-8)))
 
 (defun w3m-set-url-from-search-engine-alist (k l url)
@@ -57,32 +63,30 @@
 (defvar w3m-global-keyword nil
   "`w3m-display-hook' must search current buffer with this keyword twice if not nil")
 
-(defun w3m-guess-keyword ()
+(defun w3m-guess-keyword (&optional encode-space-with-plus)
   (unless (featurep 'w3m) (require 'w3m))
-  (w3m-url-encode-string
-   (setq w3m-global-keyword
-         (if (region-active-p)
-             (buffer-substring-no-properties (region-beginning) (region-end))
-           (read-string "Enter keyword:")))))
+  (let* ((keyword (my-use-selected-string-or-ask "Enter keyword:"))
+         (encoded-keyword (w3m-url-encode-string (setq w3m-global-keyword keyword))))
+    ;; some search requires plus sign to replace space
+    (if encode-space-with-plus
+        (replace-regexp-in-string "%20" " " encoded-keyword)
+      encoded-keyword)))
 
-(defun w3m-customized-search-api (search-engine)
+(defun w3m-customized-search-api (search-engine &optional encode-space-with-plus)
   (unless (featurep 'w3m) (require 'w3m))
-  (w3m-search search-engine (w3m-guess-keyword)))
+  (w3m-search search-engine (w3m-guess-keyword encode-space-with-plus)))
 
 (defun w3m-stackoverflow-search ()
   (interactive)
-  (unless (featurep 'w3m) (require 'w3m))
   (w3m-customized-search-api "q"))
 
 (defun w3m-java-search ()
   (interactive)
-  (unless (featurep 'w3m) (require 'w3m))
   (w3m-customized-search-api "java"))
 
 (defun w3m-google-search ()
   "Google search keyword"
   (interactive)
-  (unless (featurep 'w3m) (require 'w3m))
   (w3m-customized-search-api "g"))
 
 (defun w3m-google-by-filetype ()
@@ -105,13 +109,11 @@
 (defun w3m-search-financial-dictionary ()
   "Search financial dictionary"
   (interactive)
-  (unless (featurep 'w3m) (require 'w3m))
-  (w3m-customized-search-api "f"))
+  (w3m-customized-search-api "f" t))
 
 (defun w3m-search-js-api-mdn ()
   "Search at Mozilla Developer Network (MDN)"
   (interactive)
-  (unless (featurep 'w3m) (require 'w3m))
   (w3m-customized-search-api "j"))
 
 (defun w3m-mode-hook-setup ()
@@ -122,9 +124,20 @@
 ; {{ Search using external browser
 (setq browse-url-generic-program
       (cond
-       (*is-a-mac* "open")
-       (*linux* (executable-find "firefox"))
-       ))
+       (*is-a-mac* ; mac
+        "open")
+       (*unix* ; linux or unix
+        ;; prefer Chrome than Firefox
+        (or (executable-find "google-chrome")
+            (executable-find "firefox")))
+       (t
+        ;; Windows: you need add "firefox.exe" to environment variable PATH
+        ;; @see https://en.wikipedia.org/wiki/PATH_(variable)
+        (executable-find "firefox")
+        ;; if you prefer chrome
+        ;; (executable-find "chrome")
+        )))
+
 (setq browse-url-browser-function 'browse-url-generic)
 
 ;; use external browser to search programming stuff
@@ -153,25 +166,65 @@
 (defun w3mext-open-link-or-image-or-url ()
   "Opens the current link or image or current page's uri or any url-like text under cursor in firefox."
   (interactive)
-  (let (url)
+  (let* (url)
     (when (or (string= major-mode "w3m-mode") (string= major-mode "gnus-article-mode"))
       (setq url (w3m-anchor))
       (if (or (not url) (string= url "buffer://"))
           (setq url (or (w3m-image) w3m-current-url))))
-    (browse-url-generic (if url url (car (browse-url-interactive-arg "URL: "))))
-    ))
+    (browse-url-generic (if url url (car (browse-url-interactive-arg "URL: "))))))
+
+(defun w3mext-encode-specials (str)
+  (setq str (replace-regexp-in-string "(" "%28" str))
+  (setq str (replace-regexp-in-string ")" "%29" str))
+  (setq str (replace-regexp-in-string ")" "%20" str)))
 
 (defun w3mext-open-with-mplayer ()
+  (interactive)
+  (let (url cmd str)
+    (when (or (string= major-mode "w3m-mode") (string= major-mode "gnus-article-mode"))
+      ;; weird, `w3m-anchor' fail to extract url while `w3m-image' can
+      (setq url (or (w3m-anchor) (w3m-image)))
+      (unless url
+        (save-excursion
+          (goto-char (point-min))
+          (when (string-match "^Archived-at: <?\\([^ <>]*\\)>?" (setq str (my-buffer-str)))
+            (setq url (match-string 1 str)))))
+      (setq url (w3mext-encode-specials url))
+      (setq cmd (format "%s -cache 2000 %s &" (my-guess-mplayer-path) url))
+      (when (string= url "buffer://")
+        ;; cache 2M data and don't block UI
+        (setq cmd (my-guess-image-viewer-path url t))))
+    (if url (shell-command cmd))))
+
+(defun w3mext-subject-to-target-filename ()
+  (let (rlt str)
+    (save-excursion
+      (goto-char (point-min))
+      ;; first line in email could be some hidden line containing NO to field
+      (setq str (my-buffer-str)))
+    ;; (message "str=%s" str)
+    (if (string-match "^Subject: \\(.+\\)" str)
+        (setq rlt (match-string 1 str)))
+    ;; clean the timestamp at the end of subject
+    (setq rlt (replace-regexp-in-string "[ 0-9_.'/-]+$" "" rlt))
+    (setq rlt (replace-regexp-in-string "'s " " " rlt))
+    (setq rlt (replace-regexp-in-string "[ ,_'/-]+" "-" rlt))
+    rlt))
+
+(defun w3mext-download-rss-stream ()
   (interactive)
   (let (url cmd)
     (when (or (string= major-mode "w3m-mode") (string= major-mode "gnus-article-mode"))
       (setq url (w3m-anchor))
-      (setq cmd (format "%s -cache 2000 %s &" (my-guess-mplayer-path) url))
-      (when (or (not url) (string= url "buffer://"))
-        (setq url (w3m-image))
-        ;; cache 2M data and don't block UI
-        (setq cmd (my-guess-image-viewer-path url t))))
-    (if url (shell-command cmd))))
+      (cond
+       ((or (not url) (string= url "buffer://"))
+        (message "This link is not video/audio stream."))
+       (t
+        (setq cmd (format "curl -L %s > %s.%s"  url (w3mext-subject-to-target-filename) (file-name-extension url)))
+        (kill-new cmd)
+        (my-pclip cmd)
+        (message "%s => clipd/kill-ring" cmd))))
+    ))
 
 (eval-after-load 'w3m
   '(progn
@@ -179,7 +232,6 @@
      (add-hook 'w3m-display-hook
                (lambda (url)
                  (let ((title (or w3m-current-title url)))
-                   (message "url=%s title=%s w3m-current-title=%s" url title w3m-current-title)
                    (when w3m-global-keyword
                      ;; search keyword twice, first is url, second is your input,
                      ;; third is actual result

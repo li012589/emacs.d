@@ -1,4 +1,4 @@
-(require 'keyfreq)
+(local-require 'keyfreq)
 
 (defun turnon-keyfreq-mode ()
   (interactive)
@@ -20,15 +20,23 @@
         backward-char
         backward-kill-word
         backward-word
+        browse-kill-ring-forward
         browse-kill-ring-insert-and-quit
         browse-kill-ring-quit
         clipboard-kill-ring-save
+        comint-previous-input
+        comint-send-input
         company-complete-common
         company-complete-number
         company-complete-selection
         company-ignore
         delete-backward-char
         describe-variable
+        dired ; nothing to optimize in dired
+        dired-do-async-shell-command
+        dired-find-file
+        diredp-next-line
+        diredp-previous-line
         erase-message-buffer
         eval-buffer
         evil-a-WORD
@@ -37,6 +45,8 @@
         evil-backward-word-begin
         evil-change
         evil-change-line
+        evil-complete-next
+        evil-complete-previous
         evil-delete
         evil-delete-backward-char-and-join
         evil-delete-char
@@ -51,19 +61,31 @@
         evil-escape-visual-state
         evil-ex
         evil-ex-command
+        evil-ex-completion
         evil-ex-delete-backward-char
+        evil-exit-emacs-state
         evil-exit-visual-state
+        evil-filepath-inner-text-object
+        evil-filepath-outer-text-object
         evil-find-char
+        evil-find-char-to
         evil-first-non-blank
         evil-force-normal-state
         evil-forward-char
         evil-forward-word-begin
         evil-forward-word-end
+        evil-goto-definition
         evil-goto-first-line
         evil-goto-line
+        evil-goto-mark-line
         evil-indent
+        evil-inner-WORD
+        evil-inner-double-quote
+        evil-inner-single-quote
+        evil-inner-word
         evil-insert
         evil-join
+        evil-jump-backward
         evil-jump-forward
         evil-mc-make-and-goto-next-match
         evil-next-line
@@ -71,9 +93,11 @@
         evil-normal-state
         evil-open-below
         evil-paste-after
+        evil-paste-before
         evil-previous-line
         evil-previous-visual-line
         evil-record-macro
+        evil-repeat
         evil-replace
         evil-ret
         evil-scroll-page-down
@@ -81,7 +105,9 @@
         evil-search-forward
         evil-search-next
         evil-search-word-forward
+        evil-set-marker
         evil-substitute
+        evil-visual-block
         evil-visual-char
         evil-visual-line
         evil-yank
@@ -90,9 +116,12 @@
         forward-char
         forward-word
         gnus
-        helm-keyboard-quit
-        helm-next-line
-        helm-previous-line
+        gnus-summary-exit
+        gnus-summary-next-page
+        gnus-summary-scroll-up
+        gnus-topic-select-group
+        goto-line
+        hippie-expand
         ido-complete
         ido-delete-backward-updir
         ido-exit-minibuffer
@@ -104,6 +133,8 @@
         isearch-delete-char
         isearch-exit
         isearch-forward-regexp
+        isearch-other-control-char
+        isearch-other-meta-char
         isearch-printing-char
         isearch-repeat-forward
         isearch-ring-retreat
@@ -111,6 +142,8 @@
         ivy-backward-delete-char
         ivy-done
         ivy-next-line
+        ivy-occur-next-line
+        ivy-occur-previous-line
         ivy-previous-line
         js-mode
         js2-line-break
@@ -121,27 +154,32 @@
         keyfreq-show
         kill-sentence
         left-char
+        markdown-exdent-or-delete
         minibuffer-complete
         minibuffer-complete-and-exit
         minibuffer-keyboard-quit
         move-beginning-of-line
         move-end-of-line
         mwheel-scroll
+        my-setup-develop-environment
         newline-and-indent
         next-history-element
         next-line
         org-beginning-of-line
         org-ctrl-c-ctrl-c
         org-cycle
+        org-delete-backward-char
         org-end-of-line
         org-force-self-insert
         org-return
         org-self-insert-command
         org-todo
+        orgtbl-self-insert-command
         package-menu-execute
         paredit-backward-delete
         paredit-backward-kill-word
         paredit-close-round
+        paredit-doublequote
         paredit-newline
         paredit-open-round
         paredit-semicolon
@@ -149,6 +187,7 @@
         previous-history-element
         previous-line
         push-button
+        pwd
         quit-window
         right-char
         save-buffer
@@ -167,7 +206,6 @@
         select-window-9
         self-insert-command
         smarter-move-beginning-of-line
-        smex
         suspend-frame
         term-send-raw
         turnon-keyfreq-mode
@@ -177,10 +215,20 @@
         w3m-goto-url
         w3m-next-anchor
         w3m-view-this-url
+        web-mode
+        web-mode-complete
+        web-mode-jshint
+        web-mode-navigate
+        web-mode-part-beginning
+        web-mode-reload
+        web-mode-reveal
+        web-mode-surround
+        web-mode-tag-beginning
+        web-mode-test
+        yank
         yas-compile-directory
         yas-expand
         yas-next-field-or-maybe-expand
-        yank
         ))
 
 (unless (file-exists-p (file-truename keyfreq-file))
@@ -191,5 +239,4 @@
 ;; And use keyfreq-show to see how many times you used a command.
 ;; comment out below line if there is performance impact
 (turnon-keyfreq-mode)
-
 (provide 'init-keyfreq)

@@ -1,3 +1,4 @@
+request/
 .depend
 pyim/
 anaconda-mode/
@@ -54,3 +55,9 @@ ido.last
 projectile.cache
 .orig
 .unpacked
+srecode-map.el
+custom-set-variables.el
+.smex-items
+network-security.data
+.last-package-update-day
+.dir-locals.el

@@ -3,26 +3,20 @@
 
 ;; {{ NO spell check for embedded snippets
 (defun org-mode-is-code-snippet ()
-  (let (rlt
-        (begin-regexp "^[ \t]*#\\+begin_\\(src\\|html\\|latex\\)")
-        (end-regexp "^[ \t]*#\\+end_\\(src\\|html\\|latex\\)")
-        (old-flag case-fold-search)
-        b e)
-      (save-excursion
-        (setq case-fold-search t)
-        (setq b (re-search-backward begin-regexp nil t))
-        (if b (setq e (re-search-forward end-regexp nil t)))
-        (setq case-fold-search old-flag))
-      (if (and b e (< (point) e)) (setq rlt t))
+  (let* (rlt
+         (begin-regexp "^[ \t]*#\\+begin_\\(src\\|html\\|latex\\|example\\)")
+         (end-regexp "^[ \t]*#\\+end_\\(src\\|html\\|latex\\|example\\)")
+         (case-fold-search t)
+         b e)
+    (save-excursion
+      (if (setq b (re-search-backward begin-regexp nil t))
+          (setq e (re-search-forward end-regexp nil t))))
+    (if (and b e (< (point) e)) (setq rlt t))
     rlt))
 
 ;; no spell check for property
 (defun org-mode-current-line-is-property ()
-  (let (cur-line)
-    (setq cur-line (buffer-substring-no-properties
-                    (line-beginning-position) (line-end-position)))
-    ;; (message "cur-line=%s" cur-line)
-    (string-match "^[ \t]+:[A-Z]+:[ \t]+" cur-line)))
+  (string-match "^[ \t]+:[A-Z]+:[ \t]+" (my-line-str)))
 
 ;; Please note flyspell only use ispell-word
 (defadvice org-mode-flyspell-verify (after org-mode-flyspell-verify-hack activate)
@@ -63,13 +57,47 @@
 
 (my-setup-odt-org-convert-process)
 
+(defun narrow-to-region-indirect-buffer-maybe (start end use-indirect-buffer)
+  "Indirect buffer could multiple widen on same file."
+  (if (region-active-p) (deactivate-mark))
+  (if use-indirect-buffer
+      (with-current-buffer (clone-indirect-buffer
+                            (generate-new-buffer-name
+                             (concat (buffer-name) "-indirect-"
+                                     (number-to-string start) "-"
+                                     (number-to-string end)))
+                            'display)
+        (narrow-to-region start end)
+        (goto-char (point-min)))
+      (narrow-to-region start end)))
+
 ;; @see https://gist.github.com/mwfogleman/95cc60c87a9323876c6c
-(defun narrow-or-widen-dwim ()
-  "If the buffer is narrowed, it widens. Otherwise, it narrows to region, or Org subtree."
-  (interactive)
+(defun narrow-or-widen-dwim (&optional use-indirect-buffer)
+  "If the buffer is narrowed, it widens.
+ Otherwise, it narrows to region, or Org subtree.
+If use-indirect-buffer is not nil, use `indirect-buffer' to hold the widen content."
+  (interactive "P")
   (cond ((buffer-narrowed-p) (widen))
-        ((region-active-p) (narrow-to-region (region-beginning) (region-end)))
-        ((equal major-mode 'org-mode) (org-narrow-to-subtree))
+        ((region-active-p)
+         (narrow-to-region-indirect-buffer-maybe (region-beginning)
+                                                 (region-end)
+                                                 use-indirect-buffer))
+        ((equal major-mode 'org-mode)
+         (org-narrow-to-subtree))
+        ((derived-mode-p 'diff-mode)
+         (let* (b e)
+           (save-excursion
+             ;; If the (point) is already beginning or end of file diff,
+             ;; the `diff-beginning-of-file' and `diff-end-of-file' return nil
+             (setq b (progn (diff-beginning-of-file) (point)))
+             (setq e (progn (diff-end-of-file) (point))))
+           (when (and b e (< b e))
+             (narrow-to-region-indirect-buffer-maybe b e use-indirect-buffer))))
+        ((derived-mode-p 'prog-mode)
+         (mark-defun)
+         (narrow-to-region-indirect-buffer-maybe (region-beginning)
+                                                 (region-end)
+                                                 use-indirect-buffer))
         (t (error "Please select a region to narrow to"))))
 
 ;; Various preferences
@@ -97,11 +125,14 @@
       )
 
 ;; Refile targets include this file and any file contributing to the agenda - up to 5 levels deep
-(setq org-refile-targets (quote ((nil :maxlevel . 5) (org-agenda-files :maxlevel . 5))))
-;; Targets start with the file name - allows creating level 1 tasks
-(setq org-refile-use-outline-path (quote file))
-;; Targets complete in steps so we start with filename, TAB shows the next level of targets etc
-(setq org-outline-path-complete-in-steps t)
+(setq org-refile-targets '((nil :maxlevel . 5) (org-agenda-files :maxlevel . 5)))
+(setq org-refile-use-outline-path 'file)
+(setq org-outline-path-complete-in-steps nil)
+(defadvice org-refile (around org-refile-hack activate)
+  ;; when `org-refile' scanning org files, disable user's org-mode hooks
+  (let* ((force-buffer-file-temp-p t))
+    ad-do-it))
+
 
 (setq org-todo-keywords
       (quote ((sequence "TODO(t)" "STARTED(s)" "|" "DONE(d!/!)")
@@ -143,39 +174,50 @@
      (setq org-src-fontify-natively t)))
 
 (defun org-mode-hook-setup ()
-  (setq evil-auto-indent nil)
-  ;; org-mode's own flycheck will be loaded
-  (enable-flyspell-mode-conditionally)
+  (unless (is-buffer-file-temp)
+    (setq evil-auto-indent nil)
+    ;; org-mode's own flycheck will be loaded
+    (enable-flyspell-mode-conditionally)
 
-  ;; but I don't want to auto spell check when typing,
-  ;; please comment out `(flyspell-mode -1)` if prefer auto spell check
-  (flyspell-mode -1)
+    ;; No auto spell check during Emacs startup
+    ;; please comment out `(flyspell-mode -1)` if you prefer auto spell check
+    (flyspell-mode -1)
 
-  ;; don't spell check double words
-  (setq flyspell-check-doublon nil)
+    ;; for some reason, org8 disable odt export by default
+    (add-to-list 'org-export-backends 'odt)
+    ;; (add-to-list 'org-export-backends 'org) ; for org-mime
 
-  ;; display wrapped lines instead of truncated lines
-  (setq truncate-lines nil)
-  (setq word-wrap t))
+    ;; org-mime setup, run this command in org-file, than yank in `message-mode'
+    (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)
+
+    ;; don't spell check double words
+    (setq flyspell-check-doublon nil)
+
+    ;; create updated table of contents of org file
+    ;; @see https://github.com/snosov1/toc-org
+    (toc-org-enable)
+
+    ;; display wrapped lines instead of truncated lines
+    (setq truncate-lines nil)
+    (setq word-wrap t)))
 (add-hook 'org-mode-hook 'org-mode-hook-setup)
 
 (defadvice org-open-at-point (around org-open-at-point-choose-browser activate)
-  (let ((browse-url-browser-function
-         (cond ((equal (ad-get-arg 0) '(4))
-                'browse-url-generic)
-               ((equal (ad-get-arg 0) '(16))
-                'choose-browser)
-               (t
-                (lambda (url &optional new)
-                  (w3m-browse-url url t))))))
+  "`C-u M-x org-open-at-point` open link with `browse-url-generic-program'"
+  (let* ((browse-url-browser-function
+          (cond
+           ;; open with `browse-url-generic-program'
+           ((equal (ad-get-arg 0) '(4)) 'browse-url-generic)
+           ;; open with w3m
+           (t 'w3m-browse-url))))
     ad-do-it))
 
 (defadvice org-publish (around org-publish-advice activate)
   "Stop running major-mode hook when org-publish"
   (let ((old load-user-customized-major-mode-hook))
-	(setq load-user-customized-major-mode-hook nil)
+    (setq load-user-customized-major-mode-hook nil)
     ad-do-it
-	(setq load-user-customized-major-mode-hook old)))
+    (setq load-user-customized-major-mode-hook old)))
 
 ;; {{ org2nikola set up
 (setq org2nikola-output-root-directory "~/.config/nikola")
@@ -184,5 +226,35 @@
       '(elisp "lisp"
               emacs-lisp "lisp"))
 ;; }}
+
+(defun org-demote-or-promote (&optional is-promote)
+  (interactive "P")
+  (unless (region-active-p)
+    (org-mark-subtree))
+  (if is-promote (org-do-promote)
+    (org-do-demote)))
+
+;; {{ @see http://orgmode.org/worg/org-contrib/org-mime.html
+(defun org-mime-html-hook-setup ()
+  (org-mime-change-element-style "pre"
+                                 "color:#E6E1DC; background-color:#232323; padding:0.5em;")
+  (org-mime-change-element-style "blockquote"
+                                 "border-left: 2px solid gray; padding-left: 4px;"))
+
+(eval-after-load 'org-mime
+  '(progn
+     (setq org-mime-export-options '(:section-numbers nil :with-author nil :with-toc nil))
+     (add-hook 'org-mime-html-hook 'org-mime-html-hook-setup)))
+
+;; demo video: http://vimeo.com/album/1970594/video/13158054
+(add-hook 'message-mode-hook
+          (lambda ()
+            (local-set-key (kbd "C-c M-o") 'org-mime-htmlize)))
+;; }}
+
+(defun org-agenda-show-agenda-and-todo (&optional arg)
+  "Better org-mode agenda view."
+  (interactive "P")
+  (org-agenda arg "n"))
 
 (provide 'init-org)

@@ -4,39 +4,60 @@
 (winner-mode 1)
 ;; copied from http://puntoblogspot.blogspot.com/2011/05/undo-layouts-in-emacs.html
 (global-set-key (kbd "C-x 4 u") 'winner-undo)
-(global-set-key (kbd "C-x 4 r") 'winner-redo)
+(global-set-key (kbd "C-x 4 U") 'winner-redo)
 
 
-;;----------------------------------------------------------------------------
-;; When splitting window, show (other-buffer) in the new window
-;;----------------------------------------------------------------------------
-(defun split-window-func-with-other-buffer (split-function)
-  (lexical-let ((s-f split-function))
-    (lambda ()
-      (interactive)
-      (funcall s-f)
-      (set-window-buffer (next-window) (other-buffer)))))
+(defvar my-ratio-dict
+  '((1 . 1.61803398875)
+    (2 . 2)
+    (3 . 3)
+    (4 . 4)
+    (5 . 0.61803398875))
+  "The ratio dictionary.")
 
-(global-set-key "\C-x2" (split-window-func-with-other-buffer 'split-window-vertically))
-(global-set-key "\C-x3" (split-window-func-with-other-buffer 'split-window-horizontally))
+(defun my-split-window-horizontally (&optional ratio)
+  "Split window horizontally and resize the new window.
+'C-u number M-x my-split-window-horizontally' uses pre-defined
+ratio from `my-ratio-dict'.
+Always focus on bigger window."
+  (interactive "P")
+  (let* (ratio-val)
+    (cond
+     (ratio
+      (setq ratio-val (cdr (assoc ratio my-ratio-dict)))
+      (split-window-horizontally (floor (/ (window-body-width)
+                                           (1+ ratio-val)))))
+     (t
+      (split-window-horizontally)))
+    (set-window-buffer (next-window) (current-buffer))
+    (if (or (not ratio-val)
+            (>= ratio-val 1))
+        (windmove-right))))
 
-;;----------------------------------------------------------------------------
-;; Rearrange split windows
-;;----------------------------------------------------------------------------
-(defun split-window-horizontally-instead ()
-  (interactive)
-  (save-excursion
-    (delete-other-windows)
-    (funcall (split-window-func-with-other-buffer 'split-window-horizontally))))
+(defun my-split-window-vertically (&optional ratio)
+  "Split window vertically and resize the new window.
+'C-u number M-x my-split-window-vertically' uses pre-defined
+ratio from `my-ratio-dict'.
+Always focus on bigger window."
+  (interactive "P")
+  (let* (ratio-val)
+    (cond
+     (ratio
+      (setq ratio-val (cdr (assoc ratio my-ratio-dict)))
+      (split-window-vertically (floor (/ (window-body-height)
+                                         (1+ ratio-val)))))
+     (t
+      (split-window-vertically)))
+    ;; open another window with current-buffer
+    (set-window-buffer (next-window) (current-buffer))
+    ;; move focus if new window bigger than current one
+    (if (or (not ratio-val)
+            (>= ratio-val 1))
+        (windmove-down))))
 
-(defun split-window-vertically-instead ()
-  (interactive)
-  (save-excursion
-    (delete-other-windows)
-    (funcall (split-window-func-with-other-buffer 'split-window-vertically))))
+(global-set-key (kbd "C-x 2") 'my-split-window-vertically)
+(global-set-key (kbd "C-x 3") 'my-split-window-horizontally)
 
-(global-set-key "\C-x|" 'split-window-horizontally-instead)
-(global-set-key "\C-x_" 'split-window-vertically-instead)
 
 (defun scroll-other-window-up ()
   (interactive)
@@ -68,7 +89,7 @@
           (if this-win-2nd (other-window 1))))))
 
 (defun rotate-windows ()
-  "Rotate your windows"
+  "Rotate windows in clock-wise direction."
   (interactive)
   (cond ((not (> (count-windows)1))
          (message "You can't rotate a single window!"))
@@ -91,5 +112,29 @@
              (set-window-start w1 s2)
              (set-window-start w2 s1)
              (setq i (1+ i)))))))
+
+;; buffer related {{
+(defun kill-buffer-in-nth-window (&optional win-num)
+  "Kill the buffer in nth window, default to next window
+If WIN-NUM is provided (via prefix in C-u), kill the buffer in window numbered WIN-NUM
+
+Used for killing temporary/auto buffers like *help*, *manual* .etc, also useful
+in kill buffer in other window while keeping window split untouched."
+  (interactive "P")
+  (let ((tgt-win)
+        (cur-buf-name (buffer-name))
+        (cur-win (selected-window)))
+    (if win-num
+        (setq tgt-win (select-window-by-number win-num))
+      (setq tgt-win (next-window)))
+    (select-window tgt-win)
+    (if (eq cur-buf-name (buffer-name))
+        (message "Same buffer, do nothing")
+      (kill-this-buffer))
+    (select-window cur-win)))
+
+(global-set-key (kbd "C-x K") 'kill-buffer-in-nth-window)
+;; }}
+
 
 (provide 'init-windows)

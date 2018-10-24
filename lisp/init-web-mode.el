@@ -1,10 +1,10 @@
-(autoload 'web-mode "web-mode")
 (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.cmp\\'" . web-mode)) ; salesforce
 (add-to-list 'auto-mode-alist '("\\.app\\'" . web-mode)) ; salesforce
 (add-to-list 'auto-mode-alist '("\\.page\\'" . web-mode)) ; salesforce
 (add-to-list 'auto-mode-alist '("\\.component\\'" . web-mode)) ; salesforce
 (add-to-list 'auto-mode-alist '("\\.wp\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.vue\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.tmpl\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.php\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.module\\'" . web-mode))
@@ -21,6 +21,7 @@
 (add-to-list 'auto-mode-alist '("\\.xul?\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.eex?\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.xml?\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.\\(jst\\|ejs\\|rhtml\\)\\(\\.erb\\)?\\'"  . web-mode)) ; ruby
 
 (defun flymake-html-init ()
        (let* ((temp-file (flymake-init-create-temp-buffer-copy
@@ -34,7 +35,7 @@
   (interactive)
   (when (and (not (null buffer-file-name)) (file-writable-p buffer-file-name))
     (set (make-local-variable 'flymake-allowed-file-name-masks)
-         '(("\\.html\\|\\.ctp\\|\\.ftl\\|\\.jsp\\|\\.php\\|\\.erb\\|\\.rhtml" flymake-html-init))
+         '(("\\.html\\|\\.ctp\\|\\.ftl\\|\\.jsp\\|\\.php\\|\\.erb\\|\\.rhtm\\|\\.vue" flymake-html-init))
          )
     (set (make-local-variable 'flymake-err-line-patterns)
          ;; only validate missing html tags
