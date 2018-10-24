@@ -135,6 +135,7 @@
   ;; need statistics of keyfreq asap
   (require-init 'init-keyfreq)
   (require-init 'init-httpd)
+  (require-init 'init-theme)
 
   ;; projectile costs 7% startup time
 
