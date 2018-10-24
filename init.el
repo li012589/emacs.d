@@ -136,6 +136,7 @@
   (require-init 'init-keyfreq)
   (require-init 'init-httpd)
   (require-init 'init-theme)
+  (require-init 'init-julia)
 
   ;; projectile costs 7% startup time
 
