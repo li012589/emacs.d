@@ -137,6 +137,7 @@
   (require-init 'init-httpd)
   (require-init 'init-theme)
   (require-init 'init-julia)
+  (require-init 'init-rust)
 
   ;; projectile costs 7% startup time
 
