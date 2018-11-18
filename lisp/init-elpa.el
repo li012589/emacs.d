@@ -85,7 +85,9 @@
     company-c-headers
     company-statistics
     julia-mode
-    julia-repl)
+    julia-repl
+    rust-mode
+    )
   "Packages to install from melpa-unstable.")
 
 (defvar melpa-stable-banned-packages nil
