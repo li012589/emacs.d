@@ -1,8 +1,9 @@
-(require 'flymake)
+;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(add-to-list 'auto-mode-alist '("\\.emacs-project\\'" . emacs-lisp-mode))
-(add-to-list 'auto-mode-alist '("archive-contents\\'" . emacs-lisp-mode))
-(add-to-list 'auto-mode-alist '("\\.emacs\\.bmk\\'" . emacs-lisp-mode))
+(add-auto-mode 'emacs-lisp-mode
+               "\\.emacs-project\\'"
+               "archive-contents\\'"
+               "\\.emacs\\.bmk\\'" )
 
 ;; @see http://blog.urth.org/2011/06/02/flymake-versus-the-catalyst-restarter/
 (defun flymake-create-temp-intemp (file-name prefix)
@@ -34,12 +35,12 @@
 
 ;; do not use elisplint
 (defun flymake-elisp-init ()
-  (unless (or (string-match "^ " (buffer-name)) (is-buffer-file-temp))
+  (unless (or (string-match-p "^ " (buffer-name)) (is-buffer-file-temp))
     (let* ((temp-file (flymake-init-create-temp-buffer-copy
-                         'flymake-create-temp-intemp))
+                       'flymake-create-temp-intemp))
            (local-file (file-relative-name
-                         temp-file
-                         (file-name-directory buffer-file-name))))
+                        temp-file
+                        (file-name-directory buffer-file-name))))
       (list
        (expand-file-name invocation-name invocation-directory)
        (list
@@ -54,12 +55,8 @@
                 (scan-error
                  (goto-char(nth 2 data))
                  (princ (format "%s:%s: error: Unmatched bracket or quote\n"
-                                file (line-number-at-pos)))))))
-          )
-         )
+                                file (line-number-at-pos)))))))))
         local-file)))))
-
-(push '("\\.el$" flymake-elisp-init) flymake-allowed-file-name-masks)
 
 ;; ----------------------------------------------------------------------------
 ;; Hippie-expand
@@ -80,6 +77,9 @@
     (rainbow-delimiters-mode t)
     (set-up-hippie-expand-for-elisp)
     (flymake-mode 1)
+    (setq flymake-allowed-file-name-masks
+          (add-to-list 'flymake-allowed-file-name-masks
+                       '("\\.el$" flymake-elisp-init)))
     (checkdoc-minor-mode 1)))
 (add-hook 'emacs-lisp-mode-hook 'elisp-mode-hook-setup)
 

@@ -1,13 +1,17 @@
+;; -*- coding: utf-8; lexical-binding: t; -*-
+
+;; use memory efficient pyim engine
+(setq pyim-mapping-file-engine-p t)
+
 ;; {{ make IME compatible with evil-mode
 (defun evil-toggle-input-method ()
-  "when toggle on input method, goto evil-insert-state. "
+  "When input method is on, goto `evil-insert-state'."
   (interactive)
 
   ;; load IME when needed, less memory footprint
-  (unless (featurep 'pyim)
-    (require 'pyim))
+  (unless (featurep 'pyim) (local-require 'pyim))
 
-  ;; some guy don't use evil-mode at all
+  ;; some guys don't use evil-mode at all
   (cond
    ((and (boundp 'evil-mode) evil-mode)
     ;; evil-mode
@@ -39,11 +43,10 @@
 ;; }}
 
 ;; {{ pyim
-(defvar my-pyim-directory
-  "~/.eim"
-  "There directory of peronsal dictionaries for pyim.")
+(defvar my-pyim-directory "~/.eim"
+  "The directory containing pyim dictionaries.")
 
-(add-to-list 'auto-mode-alist '("\\.pyim\\'" . text-mode))
+(add-auto-mode 'text-mode "\\.pyim\\'")
 
 (defun my-pyim-personal-dict (&optional dict-name)
   (file-truename (concat (file-name-as-directory my-pyim-directory)
@@ -71,17 +74,29 @@
 
 (eval-after-load 'pyim
   '(progn
-     ;; I'm OK with a smaller dictionary
-     (pyim-basedict-enable)
      ;; use western punctuation (ban jiao fu hao)
      (setq pyim-punctuation-dict nil)
      ;; always input English when isearch
      (setq pyim-isearch-enable-pinyin-search t)
      (setq default-input-method "pyim")
-     ;; use personal dictionary
-     (if (and my-pyim-directory
-              (file-exists-p (my-pyim-personal-dict)))
-         (add-to-list 'pyim-dicts (list :name "personal" :file (my-pyim-personal-dict))))
+
+     ;; I'm OK with a smaller dictionary
+     (let* ((files (directory-files-and-attributes my-pyim-directory t "\.pyim$") )
+            bigdict-p)
+        (when (> (length files) 0)
+         (setq pyim-dicts
+               (mapcar (lambda (f)
+                         (when (> (file-attribute-size (cdr f)) 1 ;; (* 2 1024 1024)
+                                  )
+                           (setq bigdict-p t))
+                         (list :name (file-name-base (car f))
+                               :file (car f)))
+                       files))))
+     (pyim-basedict-enable)
+
+     (setq pyim-fuzzy-pinyin-alist
+           '(("en" "eng")
+             ("in" "ing")))
 
      ;; You can also set up the great dictionary (80M) the same way as peronsal dictionary
      ;; great dictionary can be downloaded this way:
@@ -95,7 +110,7 @@
 (defun chinese-calender (&optional args)
   "Open Chinese Lunar calenadar."
   (interactive "P")
-  (unless (featurep 'cal-china-x) (require 'cal-china-x))
+  (local-require 'cal-china-x)
   (let* ((calendar-date-display-form
           '((cal-china-x-calendar-display-form
              (mapcar (lambda (el) (string-to-number el))

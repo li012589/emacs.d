@@ -1,43 +1,15 @@
-;; @see https://bitbucket.org/lyro/evil/issue/360/possible-evil-search-symbol-forward
-;; evil 1.0.8 search word instead of symbol
-(setq evil-symbol-word-search t)
-
-;; @see https://bitbucket.org/lyro/evil/issue/511/let-certain-minor-modes-key-bindings
-(defmacro adjust-major-mode-keymap-with-evil (m &optional r)
-  `(eval-after-load (quote ,(if r r m))
-    '(progn
-       (evil-make-overriding-map ,(intern (concat m "-mode-map")) 'normal)
-       ;; force update evil keymaps after git-timemachine-mode loaded
-       (add-hook (quote ,(intern (concat m "-mode-hook"))) #'evil-normalize-keymaps))))
-
-(adjust-major-mode-keymap-with-evil "git-timemachine")
-(adjust-major-mode-keymap-with-evil "browse-kill-ring")
-
-(require 'evil)
-
-;; @see https://bitbucket.org/lyro/evil/issue/342/evil-default-cursor-setting-should-default
-;; Cursor is alway black because of evil.
-;; Here is the workaround
-(setq evil-default-cursor t)
-
-;; {{ multiple-cursors
-;; step 1, select thing in visual-mode (OPTIONAL)
-;; step 2, `mc/mark-all-like-dwim' or `mc/mark-all-like-this-in-defun'
-;; step 3, `ace-mc-add-multiple-cursors' to remove cursor, press RET to confirm
-;; step 4, press s or S to start replace
-;; step 5, press C-g to quit multiple-cursors
-(define-key evil-visual-state-map (kbd "mn") 'mc/mark-next-like-this)
-(define-key evil-visual-state-map (kbd "ma") 'mc/mark-all-like-this-dwim)
-(define-key evil-visual-state-map (kbd "md") 'mc/mark-all-like-this-in-defun)
-(define-key evil-visual-state-map (kbd "mm") 'ace-mc-add-multiple-cursors)
-(define-key evil-visual-state-map (kbd "ms") 'ace-mc-add-single-cursor)
-;; }}
+;; -*- coding: utf-8; lexical-binding: t; -*-
+;;
+;; My frequently used commands are listed here
 
 ;; enable evil-mode
 (evil-mode 0)
 
+(defvar my-use-m-for-matchit nil
+  "If t, use \"m\" key for `evil-matchit-mode'.
+And \"%\" key is also retored to `evil-jump-item'.")
+
 ;; {{ @see https://github.com/timcharper/evil-surround for tutorial
-(require 'evil-surround)
 (global-evil-surround-mode 1)
 (defun evil-surround-prog-mode-hook-setup ()
   (push '(47 . ("/" . "/")) evil-surround-pairs-alist)
@@ -67,32 +39,28 @@
 ;; }}
 
 ;; {{ For example, press `viW*`
-(require 'evil-visualstar)
 (setq evil-visualstar/persistent t)
 (global-evil-visualstar-mode t)
 ;; }}
 
-
 ;; ffip-diff-mode (read only) evil setup
 (defun ffip-diff-mode-hook-setup ()
-    (evil-local-set-key 'normal "K" 'diff-hunk-prev)
-    (evil-local-set-key 'normal "J" 'diff-hunk-next)
-    (evil-local-set-key 'normal "P" 'diff-file-prev)
-    (evil-local-set-key 'normal "N" 'diff-file-next)
-    (evil-local-set-key 'normal "q" 'ffip-diff-quit)
-    (evil-local-set-key 'normal (kbd "RET") 'ffip-diff-find-file)
-    ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
-    (evil-local-set-key 'normal "a" 'ffip-diff-apply-hunk)
-    (evil-local-set-key 'normal "o" 'ffip-diff-find-file))
+  (evil-local-set-key 'normal "K" 'diff-hunk-prev)
+  (evil-local-set-key 'normal "J" 'diff-hunk-next)
+  (evil-local-set-key 'normal "P" 'diff-file-prev)
+  (evil-local-set-key 'normal "N" 'diff-file-next)
+  (evil-local-set-key 'normal "q" (lambda () (interactive) (quit-window t)))
+  (evil-local-set-key 'normal (kbd "RET") 'ffip-diff-find-file)
+  ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
+  (evil-local-set-key 'normal "a" 'ffip-diff-apply-hunk)
+  (evil-local-set-key 'normal "o" 'ffip-diff-find-file))
 (add-hook 'ffip-diff-mode-hook 'ffip-diff-mode-hook-setup)
-
-(require 'evil-mark-replace)
 
 ;; {{ define my own text objects, works on evil v1.0.9 using older method
 ;; @see http://stackoverflow.com/questions/18102004/emacs-evil-mode-how-to-create-a-new-text-object-to-select-words-with-any-non-sp
 (defmacro define-and-bind-text-object (key start-regex end-regex)
-  (let ((inner-name (make-symbol "inner-name"))
-        (outer-name (make-symbol "outer-name")))
+  (let* ((inner-name (make-symbol "inner-name"))
+         (outer-name (make-symbol "outer-name")))
     `(progn
        (evil-define-text-object ,inner-name (count &optional beg end type)
          (evil-select-paren ,start-regex ,end-regex beg end type count nil))
@@ -128,14 +96,14 @@
 (defun evil-filepath-is-separator-char (ch)
   "Check ascii table that CH is slash characters.
 If the character before and after CH is space or tab, CH is NOT slash"
-  (let (rlt prefix-ch postfix-ch)
+  (let* (rlt prefix-ch postfix-ch)
     (when (and (> (point) (point-min)) (< (point) (point-max)))
-        (save-excursion
-          (backward-char)
-          (setq prefix-ch (following-char)))
-        (save-excursion
-          (forward-char)
-          (setq postfix-ch (following-char))))
+      (save-excursion
+        (backward-char)
+        (setq prefix-ch (following-char)))
+      (save-excursion
+        (forward-char)
+        (setq postfix-ch (following-char))))
     (if (and (not (or (= prefix-ch 32) (= postfix-ch 32)))
              (or (= ch 47) (= ch 92)) )
         (setq rlt t))
@@ -159,13 +127,13 @@ If the character before and after CH is space or tab, CH is NOT slash"
               127))))
 
 (defun evil-filepath-calculate-path (b e)
-  (let (rlt f)
+  (let* (rlt f)
     (when (and b e)
       (setq b (+ 1 b))
       (when (save-excursion
-                (goto-char e)
-                (setq f (evil-filepath-search-forward-char 'evil-filepath-is-separator-char t))
-                (and f (>= f b)))
+              (goto-char e)
+              (setq f (evil-filepath-search-forward-char 'evil-filepath-is-separator-char t))
+              (and f (>= f b)))
         (setq rlt (list b (+ 1 f) (- e 1)))))
     rlt))
 
@@ -201,11 +169,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 (defun evil-filepath-extract-region ()
   "Find the closest file path"
-  (let* (rlt
-         b
-         f1
-         f2)
-
+  (let* (rlt b f1 f2)
     (if (and (not (evil-filepath-not-path-char (following-char)))
              (setq rlt (evil-filepath-get-path-already-inside)))
         ;; maybe (point) is in the middle of the path
@@ -288,47 +252,42 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 ;; {{ specify major mode uses Evil (vim) NORMAL state or EMACS original state.
 ;; You may delete this setup to use Evil NORMAL state always.
-(loop for (mode . state) in
-      '((minibuffer-inactive-mode . emacs)
-        (calendar-mode . emacs)
-        (special-mode . emacs)
-        (grep-mode . emacs)
-        (Info-mode . emacs)
-        (term-mode . emacs)
-        (sdcv-mode . emacs)
-        (anaconda-nav-mode . emacs)
-        (log-edit-mode . emacs)
-        (vc-log-edit-mode . emacs)
-        (magit-log-edit-mode . emacs)
-        (inf-ruby-mode . emacs)
-        (direx:direx-mode . emacs)
-        (yari-mode . emacs)
-        (erc-mode . emacs)
-        (neotree-mode . emacs)
-        (w3m-mode . emacs)
-        (gud-mode . emacs)
-        (help-mode . emacs)
-        (eshell-mode . emacs)
-        (shell-mode . emacs)
-        (xref--xref-buffer-mode . emacs)
-        ;;(message-mode . emacs)
-        (epa-key-list-mode . emacs)
-        (fundamental-mode . emacs)
-        (weibo-timeline-mode . emacs)
-        (weibo-post-mode . emacs)
-        (woman-mode . emacs)
-        (sr-mode . emacs)
-        (profiler-report-mode . emacs)
-        (dired-mode . emacs)
-        (compilation-mode . emacs)
-        (speedbar-mode . emacs)
-        (ivy-occur-mode . emacs)
-        (ivy-occur-grep-mode . normal)
-        (messages-buffer-mode . normal)
-        (browse-kill-ring-mode . normal)
-        (js2-error-buffer-mode . emacs)
-        )
-      do (evil-set-initial-state mode state))
+(dolist (p '((minibuffer-inactive-mode . emacs)
+             (calendar-mode . emacs)
+             (special-mode . emacs)
+             (grep-mode . emacs)
+             (Info-mode . emacs)
+             (term-mode . emacs)
+             (sdcv-mode . emacs)
+             (anaconda-nav-mode . emacs)
+             (log-edit-mode . emacs)
+             (vc-log-edit-mode . emacs)
+             (magit-log-edit-mode . emacs)
+             (erc-mode . emacs)
+             (neotree-mode . emacs)
+             (w3m-mode . emacs)
+             (gud-mode . emacs)
+             (help-mode . emacs)
+             (eshell-mode . emacs)
+             (shell-mode . emacs)
+             (xref--xref-buffer-mode . emacs)
+             ;;(message-mode . emacs)
+             (epa-key-list-mode . emacs)
+             (fundamental-mode . emacs)
+             (weibo-timeline-mode . emacs)
+             (weibo-post-mode . emacs)
+             (woman-mode . emacs)
+             (sr-mode . emacs)
+             (profiler-report-mode . emacs)
+             (dired-mode . emacs)
+             (compilation-mode . emacs)
+             (speedbar-mode . emacs)
+             (ivy-occur-mode . emacs)
+             (ffip-file-mode . emacs)
+             (ivy-occur-grep-mode . normal)
+             (messages-buffer-mode . normal)
+             (js2-error-buffer-mode . emacs)))
+  (evil-set-initial-state (car p) (cdr p)))
 ;; }}
 
 ;; I prefer Emacs way after pressing ":" in evil-mode
@@ -340,14 +299,13 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (define-key evil-normal-state-map "Y" (kbd "y$"))
 ;; (define-key evil-normal-state-map (kbd "RET") 'ivy-switch-buffer-by-pinyin) ; RET key is preserved for occur buffer
 (define-key evil-normal-state-map "go" 'goto-char)
-(define-key evil-normal-state-map (kbd "M-y") 'counsel-browse-kill-ring)
 (define-key evil-normal-state-map (kbd "C-]") 'counsel-etags-find-tag-at-point)
 (define-key evil-visual-state-map (kbd "C-]") 'counsel-etags-find-tag-at-point)
 (define-key evil-insert-state-map (kbd "C-x C-n") 'evil-complete-next-line)
 (define-key evil-insert-state-map (kbd "C-x C-p") 'evil-complete-previous-line)
 (define-key evil-insert-state-map (kbd "C-]") 'aya-expand)
 
-(defun my-search-defun-from-pos (pos)
+(defun my-search-defun-from-pos (search pos)
   (evil-search search t t pos)
   ;; ignore this.f1 = this.fn.bind(this) code
   (when (and (memq major-mode '(js-mode js2-mode rjsx-mode))
@@ -389,24 +347,14 @@ If the character before and after CH is space or tab, CH is NOT slash"
         (when (and (markerp ipos)
                    (eq (marker-buffer ipos) (current-buffer)))
           (setq ipos (marker-position ipos)))
-         ;; imenu found a position, so go there and
-         ;; highlight the occurrence
-        (my-search-defun-from-pos (if (numberp ipos) ipos (point-min))))
+        ;; imenu found a position, so go there and
+        ;; highlight the occurrence
+        (my-search-defun-from-pos search (if (numberp ipos) ipos (point-min))))
        ;; otherwise just go to first occurrence in buffer
        (t
-        (my-search-defun-from-pos (point-min)))))))
+        (my-search-defun-from-pos search (point-min)))))))
 ;; use "gt", someone might prefer original `evil-goto-definition'
 (define-key evil-motion-state-map "gt" 'my-evil-goto-definition)
-
-(require 'evil-matchit)
-(global-evil-matchit-mode 1)
-
-;; press ",xx" to expand region
-;; then press "z" to contract, "x" to expand
-(eval-after-load "evil"
-  '(progn
-     (define-key global-map (kbd "C-x C-z") 'switch-to-shell-or-ansi-term)
-     (setq expand-region-contract-fast-key "z")))
 
 ;; I learn this trick from ReneFroger, need latest expand-region
 ;; @see https://github.com/redguardtoo/evil-matchit/issues/38
@@ -417,344 +365,390 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (define-key evil-emacs-state-map (kbd "M-j") 'yas-expand)
 (global-set-key (kbd "C-r") 'undo-tree-redo)
 
-;; My frequently used commands are listed here
-;; For example, for line like `"ef" 'end-of-defun`
-;;   You can either press `,ef` or `M-x end-of-defun` to execute it
+;; {{
+(defvar evil-global-markers-history nil)
+(defadvice evil-set-marker (before evil-set-marker-before-hack activate)
+  (let* ((args (ad-get-args 0))
+         (c (nth 0 args))
+         (pos (or (nth 1 args) (point))))
+    ;; only rememeber global markers
+    (when (and (>= c ?A) (<= c ?Z) buffer-file-name)
+      (setq evil-global-markers-history
+            (delq nil
+                  (mapcar `(lambda (e)
+                             (unless (string-match (format "^%s@" (char-to-string ,c)) e)
+                               e))
+                          evil-global-markers-history)))
+      (setq evil-global-markers-history
+            (add-to-list 'evil-global-markers-history
+                         (format "%s@%s:%d:%s"
+                                 (char-to-string c)
+                                 (file-truename buffer-file-name)
+                                 (line-number-at-pos pos)
+                                 (string-trim (my-line-str))))))))
+
+(defadvice evil-goto-mark-line (around evil-goto-mark-line-hack activate)
+  (let* ((args (ad-get-args 0))
+         (c (nth 0 args))
+         (orig-pos (point)))
+
+    (condition-case nil
+        ad-do-it
+      (error (progn
+               (when (and (eq orig-pos (point)) evil-global-markers-history)
+                 (let* ((markers evil-global-markers-history)
+                        (i 0)
+                        m
+                        file
+                        found)
+                   (while (and (not found) (< i (length markers)))
+                     (setq m (nth i markers))
+                     (when (string-match (format "\\`%s@\\(.*?\\):\\([0-9]+\\):\\(.*\\)\\'"
+                                                 (char-to-string c))
+                                         m)
+                       (setq file (match-string-no-properties 1 m))
+                       (setq found (match-string-no-properties 2 m)))
+                     (setq i (1+ i)))
+                   (when file
+                     (find-file file)
+                     (counsel-etags-forward-line found)))))))))
+
+(defun counsel-evil-goto-global-marker ()
+  "Goto global evil marker."
+  (interactive)
+  (unless (featurep 'counsel-etags) (require 'counsel-etags))
+  (ivy-read "Goto global evil marker"
+            evil-global-markers-history
+            :action (lambda (m)
+                      (when (string-match "\\`[A-Z]@\\(.*?\\):\\([0-9]+\\):\\(.*\\)\\'" m)
+                        (let* ((file (match-string-no-properties 1 m))
+                               (linenum (match-string-no-properties 2 m)))
+                          ;; item's format is like '~/proj1/ab.el:39: (defun hello() )'
+                          (counsel-etags-push-marker-stack (point-marker))
+                          ;; open file, go to certain line
+                          (find-file file)
+                          (counsel-etags-forward-line linenum))
+                        ;; flash, Emacs v25 only API
+                        (xref-pulse-momentarily)))))
+;; }}
+
 (local-require 'general)
 (general-evil-setup t)
 
 ;; {{ use `,` as leader key
-(nvmap :prefix ","
-       "=" 'increase-default-font-height ; GUI emacs only
-       "-" 'decrease-default-font-height ; GUI emacs only
-       "bf" 'beginning-of-defun
-       "bu" 'backward-up-list
-       "bb" 'back-to-previous-buffer
-       "ef" 'end-of-defun
-       "mf" 'mark-defun
-       "em" 'erase-message-buffer
-       "eb" 'eval-buffer
-       "sd" 'sudo-edit
-       "sc" 'scratch
-       "ee" 'eval-expression
-       "aa" 'copy-to-x-clipboard ; used frequently
-       "aw" 'ace-swap-window
-       "af" 'ace-maximize-window
-       "ac" 'aya-create
-       "zz" 'paste-from-x-clipboard ; used frequently
-       "cy" 'strip-convert-lines-into-one-big-string
-       "bs" '(lambda () (interactive) (goto-edge-by-comparing-font-face -1))
-       "es" 'goto-edge-by-comparing-font-face
-       "vj" 'my-validate-json-or-js-expression
-       "kc" 'kill-ring-to-clipboard
-       "mcr" 'my-create-regex-from-kill-ring
-       "ntt" 'neotree-toggle
-       "ntf" 'neotree-find ; open file in current buffer in neotree
-       "ntd" 'neotree-project-dir
-       "nth" 'neotree-hide
-       "nts" 'neotree-show
-       "fn" 'cp-filename-of-current-buffer
-       "fp" 'cp-fullpath-of-current-buffer
-       "dj" 'dired-jump ;; open the dired from current file
-       "xd" 'dired
-       "xo" 'ace-window
-       "ff" 'toggle-full-window ;; I use WIN+F in i3
-       "ip" 'find-file-in-project
-       "jj" 'find-file-in-project-at-point
-       "kk" 'find-file-in-project-by-selected
-       "kn" 'find-file-with-similar-name ; ffip v5.3.1
-       "fd" 'find-directory-in-project-by-selected
-       "trm" 'get-term
-       "tff" 'toggle-frame-fullscreen
-       "tfm" 'toggle-frame-maximized
-       "ti" 'fastdef-insert
-       "th" 'fastdef-insert-from-history
-       ;; "ci" 'evilnc-comment-or-uncomment-lines
-       ;; "cl" 'evilnc-comment-or-uncomment-to-the-line
-       ;; "cc" 'evilnc-copy-and-comment-lines
-       ;; "cp" 'evilnc-comment-or-uncomment-paragraphs
-       "ic" 'my-imenu-comments
-       "epy" 'emmet-expand-yas
-       "epl" 'emmet-expand-line
-       "rv" 'evilmr-replace-in-defun
-       "rb" 'evilmr-replace-in-buffer
-       "ts" 'evilmr-tag-selected-region ;; recommended
-       "tua" 'artbollocks-mode
-       "cby" 'cb-switch-between-controller-and-view
-       "cbu" 'cb-get-url-from-controller
-       "ht" 'counsel-etags-find-tag-at-point ; better than find-tag C-]
-       "rt" 'counsel-etags-recent-tag
-       "ft" 'counsel-etags-find-tag
-       "mm" 'counsel-bookmark-goto
-       "mk" 'bookmark-set
-       "yy" 'counsel-browse-kill-ring
-       "cf" 'counsel-grep ; grep current buffer
-       "gf" 'counsel-git ; find file
-       "gg" 'counsel-git-grep-by-selected ; quickest grep should be easy to press
-       "gm" 'counsel-git-find-my-file
-       "gs" (lambda ()
-              (interactive)
-              (let* ((ffip-diff-backends
-                      '(("Show git commit" . (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
-                                                       (collection (nonempty-lines (shell-command-to-string git-cmd)))
-                                                       (item (ffip-completing-read "git log:" collection)))
-                                                  (when item
-                                                    (shell-command-to-string (format "git show %s" (car (split-string item "|" t))))))))))
-                (ffip-show-diff 0)))
-       "gd" 'ffip-show-diff-by-description ;find-file-in-project 5.3.0+
-       "gl" 'my-git-log-trace-definition ; find history of a function or range
-       "sf" 'counsel-git-show-file
-       "sh" 'my-select-from-search-text-history
-       "df" 'counsel-git-diff-file
-       "rjs" 'run-js
-       "jsr" 'js-send-region
-       "jsb" 'js-clear-send-buffer
-       "rmz" 'run-mozilla
-       "rpy" 'run-python
-       "rlu" 'run-lua
-       "tci" 'toggle-company-ispell
-       "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
-       "it" 'issue-tracker-increment-issue-id-under-cursor
-       "ls" 'highlight-symbol
-       "lq" 'highlight-symbol-query-replace
-       "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
-       "bm" 'pomodoro-start ;; beat myself
-       "ii" 'counsel-imenu
-       "ij" 'rimenu-jump
-       "." 'evil-ex
-       ;; @see https://github.com/pidu/git-timemachine
-       ;; p: previous; n: next; w:hash; W:complete hash; g:nth version; q:quit
-       "tt" 'dumb-jump-go
-       "tb" 'dumb-jump-back
-       "tm" 'my-git-timemachine
-       ;; toggle overview,  @see http://emacs.wordpress.com/2007/01/16/quick-and-dirty-code-folding/
-       "ov" 'my-overview-of-current-buffer
-       "or" 'open-readme-in-git-root-directory
-       "oo" 'compile
-       "c$" 'org-archive-subtree ; `C-c $'
-       ;; org-do-demote/org-do-premote support selected region
-       "c<" 'org-do-promote ; `C-c C-<'
-       "c>" 'org-do-demote ; `C-c C->'
-       "cam" 'org-tags-view ; `C-c a m': search items in org-file-apps by tag
-       "cxi" 'org-clock-in ; `C-c C-x C-i'
-       "cxo" 'org-clock-out ; `C-c C-x C-o'
-       "cxr" 'org-clock-report ; `C-c C-x C-r'
-       "qq" (lambda (n)
-              (interactive "P")
-              (cond
-               ((not n)
-                (counsel-etags-grep))
-               ((= n 1)
-                ;; grep references of current web component
-                (counsel-etags-grep (format "<%s" (file-name-base buffer-file-name))))
-               ((= n 2)
-                ;; grep web component attribute name
-                (counsel-etags-grep (format "^ *%s[=:]" (or (thing-at-point 'symbol)
-                                                            (read-string "Component attribute name?")))))
-               ((= n 3)
-                ;; grep current file name base
-                (counsel-etags-grep (format "%s" (file-name-nondirectory buffer-file-name))))))
-       "dd" 'counsel-etags-grep-symbol-at-point
-       "xc" 'save-buffers-kill-terminal
-       "rr" 'my-counsel-recentf
-       "rh" 'counsel-yank-bash-history ; bash history command => yank-ring
-       "rd" 'counsel-recent-directory
-       "da" 'diff-region-tag-selected-as-a
-       "db" 'diff-region-compare-with-b
-       "di" 'evilmi-delete-items
-       "si" 'evilmi-select-items
-       "jb" 'js-beautify
-       "jp" 'my-print-json-path
-       "sep" 'string-edit-at-point
-       "sec" 'string-edit-conclude
-       "sea" 'string-edit-abort
-       "xe" 'eval-last-sexp
-       "x0" 'delete-window
-       "x1" 'delete-other-windows
-       "x2" 'my-split-window-vertically
-       "x3" 'my-split-window-horizontally
-       "s2" 'ffip-split-window-vertically
-       "s3" 'ffip-split-window-horizontally
-       "rw" 'rotate-windows
-       "ru" 'undo-tree-save-state-to-register ; C-x r u
-       "rU" 'undo-tree-restore-state-from-register ; C-x r U
-       "xt" 'toggle-window-split
-       "uu" 'winner-undo
-       "UU" 'winner-redo
-       "to" 'toggle-web-js-offset
-       "sl" 'sort-lines
-       "ulr" 'uniquify-all-lines-region
-       "ulb" 'uniquify-all-lines-buffer
-       "fs" 'ffip-save-ivy-last
-       "fr" 'ffip-ivy-resume
-       "fc" 'cp-ffip-ivy-last
-       "ss" 'swiper-the-thing ; http://oremacs.com/2015/03/25/swiper-0.2.0/ for guide
-       "hst" 'hs-toggle-fold
-       "hsa" 'hs-toggle-fold-all
-       "hsh" 'hs-hide-block
-       "hss" 'hs-show-block
-       "hd" 'describe-function
-       "hf" 'find-function
-       "hk" 'describe-key
-       "hv" 'describe-variable
-       "gt" 'counsel-gtags-dwim ; jump from reference to definition or vice versa
-       "gr" 'counsel-gtags-find-symbol
-       "gu" 'counsel-gtags-update-tags
-       "fb" 'flyspell-buffer
-       "fe" 'flyspell-goto-next-error
-       "fa" 'flyspell-auto-correct-word
-       "pe" 'flymake-goto-prev-error
-       "ne" 'flymake-goto-next-error
-       "bc" '(lambda () (interactive) (wxhelp-browse-class-or-api (thing-at-point 'symbol)))
-       "og" 'org-agenda
-       "otl" 'org-toggle-link-display
-       "oa" '(lambda ()
-               (interactive)
-               (unless (featurep 'org) (require 'org))
-               (counsel-org-agenda-headlines))
-       "om" 'toggle-org-or-message-mode
-       "ut" 'undo-tree-visualize
-       "ar" 'align-regexp
-       "wrn" 'httpd-restart-now
-       "wrd" 'httpd-restart-at-default-directory
-       "bk" 'buf-move-up
-       "bj" 'buf-move-down
-       "bh" 'buf-move-left
-       "bl" 'buf-move-right
-       "0" 'select-window-0
-       "1" 'select-window-1
-       "2" 'select-window-2
-       "3" 'select-window-3
-       "4" 'select-window-4
-       "5" 'select-window-5
-       "6" 'select-window-6
-       "7" 'select-window-7
-       "8" 'select-window-8
-       "9" 'select-window-9
-       "xm" 'my-M-x
-       "xx" 'er/expand-region
-       "xf" 'counsel-find-file
-       "xb" 'ivy-switch-buffer-by-pinyin
-       "xh" 'mark-whole-buffer
-       "xk" 'kill-buffer
-       "xs" 'save-buffer
-       "xz" 'switch-to-shell-or-ansi-term
-       "vm" 'vc-rename-file-and-buffer
-       "vc" 'vc-copy-file-and-rename-buffer
-       "xvv" 'vc-next-action ; 'C-x v v' in original
-       "va" 'git-add-current-file
-       "vk" 'git-checkout-current-file
-       "vg" 'vc-annotate ; 'C-x v g' in original
-       "vs" 'git-gutter:stage-hunk
-       "vr" 'git-gutter:revert-hunk
-       "vl" 'vc-print-log
-       "vv" 'vc-msg-show
-       "v=" 'git-gutter:popup-hunk
-       "hh" 'cliphist-paste-item
-       "yu" 'cliphist-select-item
-       "ih" 'my-goto-git-gutter ; use ivy-mode
-       "ir" 'ivy-resume
-       "nn" 'my-goto-next-hunk
-       "pp" 'my-goto-previous-hunk
-       "ww" 'narrow-or-widen-dwim
-       "xnw" 'widen
-       "xnd" 'narrow-to-defun
-       "xnr" 'narrow-to-region
-       "ycr" 'my-yas-reload-all
-       "wf" 'popup-which-function)
+(general-create-definer my-comma-leader-def
+  :prefix ","
+  :states '(normal visual))
+
+(my-comma-leader-def
+ "bf" 'beginning-of-defun
+ "bu" 'backward-up-list
+ "bb" 'back-to-previous-buffer
+ "ef" 'end-of-defun
+ "m" 'evil-set-marker
+ "em" 'erase-message-buffer
+ "eb" 'eval-buffer
+ "sd" 'sudo-edit
+ "sc" 'scratch
+ "ee" 'eval-expression
+ "aa" 'copy-to-x-clipboard ; used frequently
+ "aw" 'ace-swap-window
+ "af" 'ace-maximize-window
+ "ac" 'aya-create
+ "zz" 'paste-from-x-clipboard ; used frequently
+ "bs" '(lambda () (interactive) (goto-edge-by-comparing-font-face -1))
+ "es" 'goto-edge-by-comparing-font-face
+ "vj" 'my-validate-json-or-js-expression
+ "kc" 'kill-ring-to-clipboard
+ "ntt" 'neotree-toggle
+ "ntf" 'neotree-find ; open file in current buffer in neotree
+ "ntd" 'neotree-project-dir
+ "nth" 'neotree-hide
+ "nts" 'neotree-show
+ "fn" 'cp-filename-of-current-buffer
+ "fp" 'cp-fullpath-of-current-buffer
+ "dj" 'dired-jump ;; open the dired from current file
+ "xd" 'dired
+ "xo" 'ace-window
+ "ff" 'toggle-full-window ;; I use WIN+F in i3
+ "ip" 'find-file-in-project
+ "tt" 'find-file-in-current-directory
+ "jj" 'find-file-in-project-at-point
+ "kk" 'find-file-in-project-by-selected
+ "kn" 'find-file-with-similar-name ; ffip v5.3.1
+ "fd" 'find-directory-in-project-by-selected
+ "trm" 'get-term
+ "tff" 'toggle-frame-fullscreen
+ "tfm" 'toggle-frame-maximized
+ "ti" 'fastdef-insert
+ "th" 'fastdef-insert-from-history
+ "ci" 'evilnc-comment-or-uncomment-lines
+ "cl" 'evilnc-quick-comment-or-uncomment-to-the-line
+ "cc" 'evilnc-copy-and-comment-lines
+ "cp" 'my-evilnc-comment-or-uncomment-paragraphs
+ "ct" 'evilnc-comment-or-uncomment-html-tag ; evil-nerd-commenter v3.3.0 required
+ "ic" 'my-imenu-comments
+ "epy" 'emmet-expand-yas
+ "epl" 'emmet-expand-line
+ "rv" 'evilmr-replace-in-defun
+ "rb" 'evilmr-replace-in-buffer
+ "ts" 'evilmr-tag-selected-region ;; recommended
+ "cby" 'cb-switch-between-controller-and-view
+ "cbu" 'cb-get-url-from-controller
+ "rt" 'counsel-etags-recent-tag
+ "ft" 'counsel-etags-find-tag
+ "yy" 'counsel-browse-kill-ring
+ "cf" 'counsel-grep ; grep current buffer
+ "gf" 'counsel-git ; find file
+ "gg" 'counsel-git-grep-by-selected ; quickest grep should be easy to press
+ "gm" 'counsel-git-find-my-file
+ "gs" (lambda ()
+        (interactive)
+        (let* ((ffip-diff-backends
+                '(("Show git commit" . (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
+                                              (collection (nonempty-lines (shell-command-to-string git-cmd)))
+                                              (item (ffip-completing-read "git log:" collection)))
+                                         (when item
+                                           (shell-command-to-string (format "git show %s" (car (split-string item "|" t))))))))))
+          (ffip-show-diff 0)))
+ "gd" 'ffip-show-diff-by-description ;find-file-in-project 5.3.0+
+ "gl" 'my-git-log-trace-definition ; find history of a function or range
+ "sf" 'counsel-git-show-file
+ "sh" 'my-select-from-search-text-history
+ "df" 'counsel-git-diff-file
+ "rjs" 'run-js
+ "jsr" 'js-send-region
+ "jsb" 'js-clear-send-buffer
+ "rmz" 'run-mozilla
+ "rpy" 'run-python
+ "rlu" 'run-lua
+ "tci" 'toggle-company-ispell
+ "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
+ "ls" 'highlight-symbol
+ "lq" 'highlight-symbol-query-replace
+ "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
+ "ii" 'counsel-imenu
+ "ij" 'rimenu-jump
+ "." 'evil-ex
+ ;; @see https://github.com/pidu/git-timemachine
+ ;; p: previous; n: next; w:hash; W:complete hash; g:nth version; q:quit
+ "tg" 'dumb-jump-go
+ "tb" 'dumb-jump-back
+ "tm" 'my-git-timemachine
+ ;; toggle overview,  @see http://emacs.wordpress.com/2007/01/16/quick-and-dirty-code-folding/
+ "ov" 'my-overview-of-current-buffer
+ "oo" 'compile
+ "c$" 'org-archive-subtree ; `C-c $'
+ ;; org-do-demote/org-do-premote support selected region
+ "c<" 'org-do-promote ; `C-c C-<'
+ "c>" 'org-do-demote ; `C-c C->'
+ "cam" 'org-tags-view ; `C-c a m': search items in org-file-apps by tag
+ "cxi" 'org-clock-in ; `C-c C-x C-i'
+ "cxo" 'org-clock-out ; `C-c C-x C-o'
+ "cxr" 'org-clock-report ; `C-c C-x C-r'
+ "qq" 'my-multi-purpose-grep
+ "dd" 'counsel-etags-grep-current-directory
+ "xc" 'save-buffers-kill-terminal
+ "rr" 'my-counsel-recentf
+ "rh" 'counsel-yank-bash-history ; bash history command => yank-ring
+ "rd" 'counsel-recent-directory
+ "da" 'diff-region-tag-selected-as-a
+ "db" 'diff-region-compare-with-b
+ "di" 'evilmi-delete-items
+ "si" 'evilmi-select-items
+ "jb" 'js-beautify
+ "jp" 'my-print-json-path
+ "xe" 'eval-last-sexp
+ "x0" 'delete-window
+ "x1" 'delete-other-windows
+ "x2" 'my-split-window-vertically
+ "x3" 'my-split-window-horizontally
+ "s1" 'delete-other-windows
+ "s2" 'fip-split-window-vertically
+ "s3" 'ffip-split-window-horizontally
+ "rw" 'rotate-windows
+ "ru" 'undo-tree-save-state-to-register ; C-x r u
+ "rU" 'undo-tree-restore-state-from-register ; C-x r U
+ "xt" 'toggle-two-split-window
+ "uu" 'winner-undo
+ "UU" 'winner-redo
+ "to" 'toggle-web-js-offset
+ "fs" 'ffip-save-ivy-last
+ "fr" 'ffip-ivy-resume
+ "fc" 'cp-ffip-ivy-last
+ "ss" 'counsel-grep-or-swiper ; better performance, got Cygwin grep installed on Windows always
+ "hst" 'hs-toggle-fold
+ "hsa" 'hs-toggle-fold-all
+ "hsh" 'hs-hide-block
+ "hss" 'hs-show-block
+ "hd" 'describe-function
+ "hf" 'find-function
+ "hk" 'describe-key
+ "hv" 'describe-variable
+ "gt" 'counsel-gtags-dwim ; jump from reference to definition or vice versa
+ "gr" 'counsel-gtags-find-symbol
+ "gu" 'counsel-gtags-update-tags
+ "fb" 'flyspell-buffer
+ "fe" 'flyspell-goto-next-error
+ "fa" 'flyspell-auto-correct-word
+ "lb" 'langtool-check-buffer
+ "ll" 'langtool-goto-next-error
+ "pe" 'flymake-goto-prev-error
+ "ne" 'flymake-goto-next-error
+ "bc" '(lambda () (interactive) (wxhelp-browse-class-or-api (thing-at-point 'symbol)))
+ "og" 'org-agenda
+ "otl" 'org-toggle-link-display
+ "oa" '(lambda ()
+         (interactive)
+         (unless (featurep 'org) (require 'org))
+         (counsel-org-agenda-headlines))
+ "om" 'toggle-org-or-message-mode
+ "ut" 'undo-tree-visualize
+ "ar" 'align-regexp
+ "wrn" 'httpd-restart-now
+ "wrd" 'httpd-restart-at-default-directory
+ "bk" 'buf-move-up
+ "bj" 'buf-move-down
+ "bh" 'buf-move-left
+ "bl" 'buf-move-right
+ "0" 'winum-select-window-0-or-10
+ "1" 'winum-select-window-1
+ "2" 'winum-select-window-2
+ "3" 'winum-select-window-3
+ "4" 'winum-select-window-4
+ "5" 'winum-select-window-5
+ "6" 'winum-select-window-6
+ "7" 'winum-select-window-7
+ "8" 'winum-select-window-8
+ "9" 'winum-select-window-9
+ "xm" 'counsel-M-x
+ "xx" 'er/expand-region
+ "xf" 'counsel-find-file
+ "xb" 'ivy-switch-buffer-by-pinyin
+ "xh" 'mark-whole-buffer
+ "xk" 'kill-buffer
+ "xs" 'save-buffer
+ "xz" 'switch-to-shell-or-ansi-term
+ "vm" 'vc-rename-file-and-buffer
+ "vc" 'vc-copy-file-and-rename-buffer
+ "xvv" 'vc-next-action ; 'C-x v v' in original
+ "va" 'git-add-current-file
+ "vk" 'git-checkout-current-file
+ "vg" 'vc-annotate ; 'C-x v g' in original
+ "vs" 'git-gutter:stage-hunk
+ "vr" 'git-gutter:revert-hunk
+ "vl" 'vc-print-log
+ "vv" 'vc-msg-show
+ "v=" 'git-gutter:popup-hunk
+ "hh" 'cliphist-paste-item
+ "yu" 'cliphist-select-item
+ "ih" 'my-goto-git-gutter ; use ivy-mode
+ "ir" 'ivy-resume
+ "nn" 'my-goto-next-hunk
+ "pp" 'my-goto-previous-hunk
+ "ww" 'narrow-or-widen-dwim
+ "xnw" 'widen
+ "xnd" 'narrow-to-defun
+ "xnr" 'narrow-to-region
+ "ycr" 'my-yas-reload-all
+ "wf" 'popup-which-function)
 ;; }}
 
 ;; {{ Use `SPC` as leader key
 ;; all keywords arguments are still supported
-(nvmap :prefix "SPC"
-       "ee" 'my-swap-sexps
-       "pc" 'my-dired-redo-from-commands-history
-       "pw" 'pwd
-       "cc" 'my-dired-redo-last-command
-       "ss" 'wg-create-workgroup ; save windows layout
-       "se" 'evil-iedit-state/iedit-mode ; start iedit in emacs
-       "sc" 'shell-command
-       "ll" 'my-wg-switch-workgroup ; load windows layout
-       "kk" 'scroll-other-window
-       "jj" 'scroll-other-window-up
-       "rt" 'random-color-theme
-       "yy" 'hydra-launcher/body
-       "hh" 'multiple-cursors-hydra/body
-       "gi" 'gist-region ; only workable on my computer
-       "tt" 'my-toggle-indentation
-       "gg" 'magit-status
-       "gs" 'magit-show-commit
-       "gl" 'magit-log-all
-       "gff" 'magit-find-file ; loading file in specific version into buffer
-       "gdd" 'magit-diff-dwim
-       "gdc" 'magit-diff-staged
-       "gau" 'magit-stage-modified
-       "gcc" 'magit-commit-popup
-       "gca" 'magit-commit-amend
-       "gja" 'magit-commit-extend
-       "gtt" 'magit-stash
-       "gta" 'magit-stash-apply
-       "gv" 'git-gutter:set-start-revision
-       "gh" 'git-gutter-reset-to-head-parent
-       "gr" 'git-gutter-reset-to-default
-       "ps" 'profiler-start
-       "pr" 'profiler-report
-       "ud" 'my-gud-gdb
-       "uk" 'gud-kill-yes
-       "ur" 'gud-remove
-       "ub" 'gud-break
-       "uu" 'gud-run
-       "up" 'gud-print
-       "ue" 'gud-cls
-       "un" 'gud-next
-       "us" 'gud-step
-       "ui" 'gud-stepi
-       "uc" 'gud-cont
-       "uf" 'gud-finish
-       "ma" 'mc/mark-all-like-this-dwim
-       "md" 'mc/mark-all-like-this-in-defun
-       "mm" 'ace-mc-add-multiple-cursors
-       "mn" 'mc/mark-next-like-this
-       "ms" 'mc/skip-to-next-like-this
-       "me" 'mc/edit-lines)
+(general-create-definer my-space-leader-def
+  :prefix "SPC"
+  :states '(normal visual))
+
+(my-space-leader-def
+ "ee" 'my-swap-sexps
+ "pc" 'my-dired-redo-from-commands-history
+ "pw" 'pwd
+ "mm" 'counsel-evil-goto-global-marker
+ "mf" 'mark-defun
+ "cc" 'my-dired-redo-last-command
+ "ss" 'wg-create-workgroup ; save windows layout
+ "se" 'evil-iedit-state/iedit-mode ; start iedit in emacs
+ "sc" 'shell-command
+ "ll" 'my-wg-switch-workgroup ; load windows layout
+ "kk" 'scroll-other-window
+ "jj" 'scroll-other-window-up
+ "rt" 'random-color-theme
+ "yy" 'hydra-launcher/body
+ "gi" 'gist-region ; only workable on my computer
+ "tt" 'my-toggle-indentation
+ "ggg" 'magit-status
+ "gs" 'magit-show-commit
+ "gl" 'magit-log-all
+ "gff" 'magit-find-file ; loading file in specific version into buffer
+ "gdd" 'magit-diff-dwim
+ "gdc" 'magit-diff-staged
+ "gau" 'magit-stage-modified
+ "gcc" 'magit-commit-popup
+ "gca" 'magit-commit-amend
+ "ggt" 'git-commit-tracked
+ "gja" 'magit-commit-extend
+ "gtt" 'magit-stash
+ "gta" 'magit-stash-apply
+ "gv" 'git-gutter:set-start-revision
+ "gh" 'git-gutter-reset-to-head-parent
+ "gr" 'git-gutter-reset-to-default
+ "ps" 'profiler-start
+ "pr" 'profiler-report
+ "ud" 'my-gud-gdb
+ "uk" 'gud-kill-yes
+ "ur" 'gud-remove
+ "ub" 'gud-break
+ "uu" 'gud-run
+ "up" 'gud-print
+ "ue" 'gud-cls
+ "un" 'gud-next
+ "us" 'gud-step
+ "ui" 'gud-stepi
+ "uc" 'gud-cont
+ "uf" 'gud-finish)
 
 ;; per-major-mode setup
-(general-define-key :states '(normal motion insert emacs)
-                    :keymaps 'js2-mode-map
-                    :prefix "SPC"
-                    :non-normal-prefix "M-SPC"
-                    "de" 'js2-display-error-list
-                    "nn" 'js2-next-error
-                    "te" 'js2-mode-toggle-element
-                    "tf" 'js2-mode-toggle-hide-functions
-                    "jeo" 'js2r-expand-object
-                    "jco" 'js2r-contract-object
-                    "jeu" 'js2r-expand-function
-                    "jcu" 'js2r-contract-function
-                    "jea" 'js2r-expand-array
-                    "jca" 'js2r-contract-array
-                    "jwi" 'js2r-wrap-buffer-in-iife
-                    "jig" 'js2r-inject-global-in-iife
-                    "jev" 'js2r-extract-var
-                    "jiv" 'js2r-inline-var
-                    "jrv" 'js2r-rename-var
-                    "jvt" 'js2r-var-to-this
-                    "jag" 'js2r-add-to-globals-annotation
-                    "jsv" 'js2r-split-var-declaration
-                    "jss" 'js2r-split-string
-                    "jef" 'js2r-extract-function
-                    "jem" 'js2r-extract-method
-                    "jip" 'js2r-introduce-parameter
-                    "jlp" 'js2r-localize-parameter
-                    "jtf" 'js2r-toggle-function-expression-and-declaration
-                    "jao" 'js2r-arguments-to-object
-                    "juw" 'js2r-unwrap
-                    "jwl" 'js2r-wrap-in-for-loop
-                    "j3i" 'js2r-ternary-to-if
-                    "jlt" 'js2r-log-this
-                    "jsl" 'js2r-forward-slurp
-                    "jba" 'js2r-forward-barf
-                    "jk" 'js2r-kill)
+
+(general-create-definer my-javascript-leader-def
+  :prefix "SPC"
+  :non-normal-prefix "M-SPC"
+  :states '(normal motion insert emacs)
+  :keymaps 'js2-mode-map)
+
+(my-javascript-leader-def
+ "de" 'js2-display-error-list
+ "nn" 'js2-next-error
+ "te" 'js2-mode-toggle-element
+ "tf" 'js2-mode-toggle-hide-functions
+ "jeo" 'js2r-expand-object
+ "jco" 'js2r-contract-object
+ "jeu" 'js2r-expand-function
+ "jcu" 'js2r-contract-function
+ "jea" 'js2r-expand-array
+ "jca" 'js2r-contract-array
+ "jwi" 'js2r-wrap-buffer-in-iife
+ "jig" 'js2r-inject-global-in-iife
+ "jev" 'js2r-extract-var
+ "jiv" 'js2r-inline-var
+ "jrv" 'js2r-rename-var
+ "jvt" 'js2r-var-to-this
+ "jag" 'js2r-add-to-globals-annotation
+ "jsv" 'js2r-split-var-declaration
+ "jss" 'js2r-split-string
+ "jef" 'js2r-extract-function
+ "jem" 'js2r-extract-method
+ "jip" 'js2r-introduce-parameter
+ "jlp" 'js2r-localize-parameter
+ "jtf" 'js2r-toggle-function-expression-and-declaration
+ "jao" 'js2r-arguments-to-object
+ "juw" 'js2r-unwrap
+ "jwl" 'js2r-wrap-in-for-loop
+ "j3i" 'js2r-ternary-to-if
+ "jlt" 'js2r-log-this
+ "jsl" 'js2r-forward-slurp
+ "jba" 'js2r-forward-barf
+ "jk" 'js2r-kill)
 ;; }}
 
 ;; Press `dd' to delete lines in `wgrep-mode' in evil directly
@@ -768,31 +762,32 @@ If the character before and after CH is space or tab, CH is NOT slash"
       (wgrep-toggle-readonly-area)))
 
 ;; {{ Use `;` as leader key, for searching something
-(nvmap :prefix ";"
-       ;; Search character(s) at the beginning of word
-       ;; See https://github.com/abo-abo/avy/issues/70
-       ;; You can change the avy font-face in ~/.custom.el:
-       ;;  (eval-after-load 'avy
-       ;;   '(progn
-       ;;      (set-face-attribute 'avy-lead-face-0 nil :foreground "black")
-       ;;      (set-face-attribute 'avy-lead-face-0 nil :background "#f86bf3")))
-       ";" 'avy-goto-char-2
-       "w" 'avy-goto-word-or-subword-1
-       "a" 'avy-goto-char-timer
-       "db" 'sdcv-search-pointer ; in buffer
-       "dt" 'sdcv-search-input+ ; in tip
-       "dd" 'my-lookup-dict-org
-       "mm" 'lookup-doc-in-man
-       "gg" 'w3m-google-search
-       "gf" 'w3m-google-by-filetype
-       "gd" 'w3m-search-financial-dictionary
-       "gj" 'w3m-search-js-api-mdn
-       "ga" 'w3m-java-search
-       "gh" 'w3mext-hacker-search ; code search in all engines with firefox
-       "gq" 'w3m-stackoverflow-search
-       "mw" 'mpc-which-song
-       "mn" 'mpc-next-prev-song
-       "mp" '(lambda () (interactive) (mpc-next-prev-song t)))
+(general-create-definer my-semicolon-leader-def
+  :prefix ";"
+  :states '(normal visual))
+
+(my-semicolon-leader-def
+ ;; Search character(s) at the beginning of word
+ ;; See https://github.com/abo-abo/avy/issues/70
+ ;; You can change the avy font-face in ~/.custom.el:
+ ;;  (eval-after-load 'avy
+ ;;   '(progn
+ ;;      (set-face-attribute 'avy-lead-face-0 nil :foreground "black")
+ ;;      (set-face-attribute 'avy-lead-face-0 nil :background "#f86bf3")))
+ ";" 'ace-pinyin-jump-char-2
+ "w" 'avy-goto-word-or-subword-1
+ "a" 'avy-goto-char-timer
+ "db" 'sdcv-search-pointer ; in buffer
+ "dt" 'sdcv-search-input+ ; in tip
+ "dd" 'my-lookup-dict-org
+ "mm" 'lookup-doc-in-man
+ "gg" 'w3m-google-search
+ "gf" 'w3m-google-by-filetype
+ "gd" 'w3m-search-financial-dictionary
+ "gj" 'w3m-search-js-api-mdn
+ "ga" 'w3m-java-search
+ "gh" 'w3mext-hacker-search ; code search in all engines with firefox
+ "gq" 'w3m-stackoverflow-search)
 ;; }}
 
 ;; {{ remember what we searched
@@ -825,17 +820,41 @@ If the character before and after CH is space or tab, CH is NOT slash"
                                    (face-foreground 'mode-line))))
   (add-hook 'post-command-hook
             (lambda ()
-              (let ((color (cond ((minibufferp) default-color)
-                                 ((evil-insert-state-p) '("#e80000" . "#ffffff"))
-                                 ((evil-emacs-state-p)  '("#444488" . "#ffffff"))
-                                 ((buffer-modified-p)   '("#006fa0" . "#ffffff"))
-                                 (t default-color))))
+              (let* ((color (cond ((minibufferp) default-color)
+                                  ((evil-insert-state-p) '("#e80000" . "#ffffff"))
+                                  ((evil-emacs-state-p)  '("#444488" . "#ffffff"))
+                                  ((buffer-modified-p)   '("#006fa0" . "#ffffff"))
+                                  (t default-color))))
                 (set-face-background 'mode-line (car color))
                 (set-face-foreground 'mode-line (cdr color))))))
 
 ;; {{ evil-nerd-commenter
-(require 'evil-nerd-commenter)
-(evilnc-default-hotkeys)
+(evilnc-default-hotkeys t)
+
+(defun my-current-line-html-p (paragraph-region)
+  (let* ((line (buffer-substring-no-properties (line-beginning-position)
+                                               (line-end-position)))
+         (re (format "^[ \t]*\\(%s\\)?[ \t]*</?[a-zA-Z]+"
+                     (regexp-quote evilnc-html-comment-start))))
+    ;; current paragraph does contain html tag
+    (if (and (>= (point) (car paragraph-region))
+             (string-match-p re line))
+        t)))
+
+(defun my-evilnc-comment-or-uncomment-paragraphs (&optional num)
+  "Comment or uncomment NUM paragraphs which might contain html tags."
+  (interactive "p")
+  (unless (featurep 'evil-nerd-commenter) (require 'evil-nerd-commenter))
+  (let* ((paragraph-region (evilnc--get-one-paragraph-region))
+         (html-p (ignore-errors
+                   (or (save-excursion
+                         (sgml-skip-tag-backward 1)
+                         (my-current-line-html-p paragraph-region))
+                       (save-excursion
+                         (sgml-skip-tag-forward 1)
+                         (my-current-line-html-p paragraph-region))))))
+    (if html-p (evilnc-comment-or-uncomment-html-paragraphs num)
+      (evilnc-comment-or-uncomment-paragraphs num))))
 
 (defun my-imenu-comments ()
   "Imenu display comments."
@@ -848,7 +867,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 ;; {{ evil-exchange
 ;; press gx twice to exchange, gX to cancel
-(require 'evil-exchange)
 ;; change default key bindings (if you want) HERE
 ;; (setq evil-exchange-key (kbd "zx"))
 (evil-exchange-install)
@@ -876,12 +894,15 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;;  - "n" next, "N" previous (obviously we use "p" for yank)
 ;;  - "gg" the first occurence, "G" the last occurence
 ;;  - Please note ";;" or `avy-goto-char-timer' is also useful
-(require 'evil-iedit-state)
 ;; }}
 
-;; {{ Evil’s f/F/t/T commands with Pinyin supptt,
-(require 'evil-find-char-pinyin)
+;; {{ Evil’s f/F/t/T command can search PinYin ,
 (evil-find-char-pinyin-mode 1)
+;; }}
+
+;; {{ Port of vim-textobj-syntax.
+;; It provides evil text objects for consecutive items with same syntax highlight.
+(require 'evil-textobj-syntax)
 ;; }}
 
 ;; {{ evil-args
@@ -898,4 +919,35 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; bind evil-jump-out-args
 (define-key evil-normal-state-map "K" 'evil-jump-out-args)
 ;; }}
+
+
+;; press ",xx" to expand region
+;; then press "z" to contract, "x" to expand
+(eval-after-load "evil"
+  '(progn
+     (define-key global-map (kbd "C-x C-z") 'switch-to-shell-or-ansi-term)
+     (setq expand-region-contract-fast-key "z")
+     ;; @see https://bitbucket.org/lyro/evil/issue/360/possible-evil-search-symbol-forward
+     ;; evil 1.0.8 search word instead of symbol
+     (setq evil-symbol-word-search t)
+
+     ;; @see https://emacs.stackexchange.com/questions/9583/how-to-treat-underscore-as-part-of-the-word
+     ;; uncomment below line to make "dw" has exact same behaviour in evil as as in vim
+     ;; (defalias #'forward-evil-word #'forward-evil-symbol)
+
+     ;; @see https://bitbucket.org/lyro/evil/issue/511/let-certain-minor-modes-key-bindings
+     (defmacro adjust-major-mode-keymap-with-evil (m &optional r)
+       `(eval-after-load (quote ,(if r r m))
+          '(progn
+             (evil-make-overriding-map ,(intern (concat m "-mode-map")) 'normal)
+             ;; force update evil keymaps after git-timemachine-mode loaded
+             (add-hook (quote ,(intern (concat m "-mode-hook"))) #'evil-normalize-keymaps))))
+
+     (adjust-major-mode-keymap-with-evil "git-timemachine")
+
+     ;; @see https://bitbucket.org/lyro/evil/issue/342/evil-default-cursor-setting-should-default
+     ;; Cursor is alway black because of evil.
+     ;; Here is the workaround
+     (setq evil-default-cursor t)))
+
 (provide 'init-evil)

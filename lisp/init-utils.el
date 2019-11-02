@@ -1,3 +1,5 @@
+;; -*- coding: utf-8; lexical-binding: t; -*-
+
 ;; elisp version of try...catch...finally
 (defmacro safe-wrap (fn &rest clean-up)
   `(unwind-protect
@@ -9,6 +11,7 @@
             (setq retval (cons 'exception (list ex)))))
          retval)
      ,@clean-up))
+
 
 ;; {{ copied from http://ergoemacs.org/emacs/elisp_read_file_content.html
 (defun get-string-from-file (file)
@@ -23,67 +26,6 @@
     (insert-file-contents file)
     (split-string (buffer-string) "\n" t)))
 ;; }}
-
-(defun split-camel-case (word)
-  "Split camel case WORD into a list of strings.
-Ported from 'https://github.com/fatih/camelcase/blob/master/camelcase.go'."
-  (let* ((case-fold-search nil)
-         (len (length word))
-         ;; ten sub-words is enough
-         (runes [nil nil nil nil nil nil nil nil nil nil])
-         (runes-length 0)
-         (i 0)
-         ch
-         (last-class 0)
-         (class 0)
-         rlt)
-
-    ;; split into fields based on class of character
-    (while (< i len)
-      (setq ch (elt word i))
-      (cond
-       ;; lower case
-       ((and (>= ch ?a) (<= ch ?z))
-        (setq class 1))
-       ;; upper case
-       ((and (>= ch ?A) (<= ch ?Z))
-        (setq class 2))
-       ((and (>= ch ?0) (<= ch ?9))
-        (setq class 3))
-       (t
-        (setq class 4)))
-
-      (cond
-       ((= class last-class)
-        (aset runes
-              (1- runes-length)
-              (concat (aref runes (1- runes-length)) (char-to-string ch))))
-       (t
-        (aset runes runes-length (char-to-string ch))
-        (setq runes-length (1+ runes-length))))
-      (setq last-class class)
-      ;; end of while
-      (setq i (1+ i)))
-
-    ;; handle upper case -> lower case sequences, e.g.
-    ;;     "PDFL", "oader" -> "PDF", "Loader"
-    (setq i 0)
-    (while (< i (1- runes-length))
-      (let* ((ch-first (aref (aref runes i) 0))
-             (ch-second (aref (aref runes (1+ i)) 0)))
-        (when (and (and (>= ch-first ?A) (<= ch-first ?Z))
-                   (and (>= ch-second ?a) (<= ch-second ?z)))
-          (aset runes (1+ i) (concat (substring (aref runes i) -1) (aref runes (1+ i))))
-          (aset runes i (substring (aref runes i) 0 -1))))
-      (setq i (1+ i)))
-
-    ;; construct final result
-    (setq i 0)
-    (while (< i runes-length)
-      (when (> (length (aref runes i)) 0)
-        (setq rlt (add-to-list 'rlt (aref runes i) t)))
-      (setq i (1+ i)))
-     rlt))
 
 (defun nonempty-lines (s)
   (split-string s "[\r\n]+" t))
@@ -118,10 +60,6 @@ Ported from 'https://github.com/fatih/camelcase/blob/master/camelcase.go'."
       (setq pos (match-end group)))
     result))
 
-(defun string-rtrim (str)
-  "Remove trailing whitespace from `STR'."
-  (replace-regexp-in-string "[ \t\n]*$" "" str))
-
 ;; Find the directory containing a given library
 (defun directory-of-library (library-name)
   "Return the directory in which the `LIBRARY-NAME' load file is found."
@@ -132,38 +70,33 @@ Ported from 'https://github.com/fatih/camelcase/blob/master/camelcase.go'."
   (let* ((pattern (concat "^" (file-name-as-directory directory))))
     (if (string-match-p pattern file) file)))
 
-(defmacro my-select-from-kill-ring (fn &optional n)
-  "Use `browse-kill-ring' if it exists and N is 1.
-If N > 1, assume just yank the Nth item in `kill-ring'.
-If N is nil, use `ivy-mode' to browse the `kill-ring'."
+(defun my-prepare-candidate-fit-into-screen (s)
+  (let* ((w (frame-width))
+         ;; display kill ring item in one line
+         (key (replace-regexp-in-string "[ \t]*[\n\r]+[ \t]*" "\\\\n" s)))
+    ;; strip the whitespace
+    (setq key (replace-regexp-in-string "^[ \t]+" "" key))
+    ;; fit to the minibuffer width
+    (if (> (length key) w)
+        (setq key (concat (substring key 0 (- w 4)) "...")))
+    (cons key s)))
+
+(defmacro my-select-from-kill-ring (fn)
+  "If N > 1, yank the Nth item in `kill-ring'.
+If N is nil, use `ivy-mode' to browse `kill-ring'."
   (interactive "P")
-  `(cond
-    ((or (not ,n) (and (= ,n 1) (not (fboundp 'browse-kill-ring))))
-     ;; remove duplicates in `kill-ring'
-     (let* ((candidates (cl-remove-if
-                         (lambda (s)
-                           (or (< (length s) 5)
-                               (string-match "\\`[\n[:blank:]]+\\'" s)))
-                         (delete-dups kill-ring))))
-       (let* ((ivy-height (/ (frame-height) 2)))
-         (ivy-read "Browse `kill-ring':"
-                   (mapcar
-                    (lambda (s)
-                      (let* ((w (frame-width))
-                             ;; display kill ring item in one line
-                             (key (replace-regexp-in-string "[ \t]*[\n\r]+[ \t]*" "\\\\n" s)))
-                        ;; strip the whitespace
-                        (setq key (replace-regexp-in-string "^[ \t]+" "" key))
-                        ;; fit to the minibuffer width
-                        (if (> (length key) w)
-                            (setq key (concat (substring key 0 (- w 4)) "...")))
-                        (cons key s)))
-                    candidates)
-                   :action #',fn))))
-    ((= ,n 1)
-     (browse-kill-ring))))
+  `(let* ((candidates (cl-remove-if
+                       (lambda (s)
+                         (or (< (length s) 5)
+                             (string-match-p "\\`[\n[:blank:]]+\\'" s)))
+                       (delete-dups kill-ring)))
+          (ivy-height (/ (frame-height) 2)))
+     (ivy-read "Browse `kill-ring':"
+               (mapcar #'my-prepare-candidate-fit-into-screen candidates)
+               :action #',fn)))
 
 (defun my-insert-str (str)
+  "Insert STR into current buffer."
   ;; ivy8 or ivy9
   (if (consp str) (setq str (cdr str)))
   ;; evil-mode?
@@ -174,7 +107,8 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
            (not (eobp)))
       (forward-char))
   ;; insert now
-  (insert str))
+  (insert str)
+  str)
 
 (defun my-line-str (&optional line-end)
   (buffer-substring-no-properties (line-beginning-position)
@@ -235,9 +169,6 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
   (interactive)
   (browse-url-generic (concat "file://" (buffer-file-name))))
 
-
-(require 'cl)
-
 (defmacro with-selected-frame (frame &rest forms)
   (let ((prev-frame (gensym))
         (new-frame (gensym)))
@@ -253,8 +184,8 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
 (defvar cached-normal-file-full-path nil)
 
 (defun buffer-too-big-p ()
-  (or (> (buffer-size) (* 5000 64))
-      (> (line-number-at-pos (point-max)) 5000)))
+  ;; 5000 lines
+  (> (buffer-size) (* 5000 80)))
 
 (defun file-too-big-p (file)
   (> (nth 7 (file-attributes file))
@@ -262,23 +193,23 @@ If N is nil, use `ivy-mode' to browse the `kill-ring'."
 
 (defvar force-buffer-file-temp-p nil)
 (defun is-buffer-file-temp ()
+  "If (buffer-file-name) is nil or a temp file or HTML file converted from org file."
   (interactive)
-  "If (buffer-file-name) is nil or a temp file or HTML file converted from org file"
-  (let ((f (buffer-file-name))
-        org
-        (rlt t))
+  (let* ((f (buffer-file-name)) (rlt t))
     (cond
-     ((not load-user-customized-major-mode-hook) t)
+     ((not load-user-customized-major-mode-hook)
+      (setq rlt t))
      ((not f)
       ;; file does not exist at all
-      (setq rlt t))
+      ;; org-babel edit inline code block need calling hook
+      (setq rlt nil))
      ((string= f cached-normal-file-full-path)
       (setq rlt nil))
      ((string-match (concat "^" temporary-file-directory) f)
       ;; file is create from temp directory
       (setq rlt t))
      ((and (string-match "\.html$" f)
-           (file-exists-p (setq org (replace-regexp-in-string "\.html$" ".org" f))))
+           (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
       ;; file is a html file exported from org-mode
       (setq rlt t))
      (force-buffer-file-temp-p
@@ -320,82 +251,33 @@ you can '(setq my-mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
      (*cygwin* (setq rlt "feh -F"))
      (t ; windows
       (setq rlt
-            (format "rundll32.exe %SystemRoot%\\\\System32\\\\\shimgvw.dll, ImageView_Fullscreen %s &" file))))
+            (format "rundll32.exe %s\\\\System32\\\\\shimgvw.dll, ImageView_Fullscreen %s &"
+                    (getenv "SystemRoot")
+                    file))))
     rlt))
 
-;; {{ simpleclip has problem on Emacs 25.1
-(defun test-simpleclip ()
-  (unwind-protect
-      (let (retval)
-        (condition-case ex
-            (progn
-              (simpleclip-set-contents "testsimpleclip!")
-              (setq retval
-                    (string= "testsimpleclip!"
-                             (simpleclip-get-contents))))
-          ('error
-           (message (format "Please install %s to support clipboard from terminal."
-                            (cond
-                             (*unix*
-                              "xsel or xclip")
-                             ((or *cygwin* *win64*)
-                              "cygutils-extra from Cygwin")
-                             (t
-                              "CLI clipboard tools"))))
-           (setq retval nil)))
-        retval)))
-
-(setq simpleclip-works (test-simpleclip))
 
 (defun my-gclip ()
-  (unless (featurep 'simpleclip) (require 'simpleclip))
-  (cond
-   (simpleclip-works
-    (simpleclip-get-contents))
-   ((eq system-type 'darwin)
-    (with-output-to-string
-      (with-current-buffer standard-output
-        (call-process "/usr/bin/pbpaste" nil t nil "-Prefer" "txt"))))
-   ((eq system-type 'cygwin)
-    (with-output-to-string
-      (with-current-buffer standard-output
-        (call-process "getclip" nil t nil))))
-   ((memq system-type '(gnu gnu/linux gnu/kfreebsd))
-    (let* ((powershell-program (executable-find "powershell.exe")))
-           (cond
-            (powershell-program
-             ;; PowerLine adds extra white space character at the end of text
-             (string-trim-right
-              (with-output-to-string
-                (with-current-buffer standard-output
-                  (call-process powershell-program nil t nil "-command" "Get-Clipboard")))))
-            (t
-             (with-output-to-string
-               (with-current-buffer standard-output
-                 (call-process "xsel" nil t nil "--clipboard" "--output")))))))))
+  (let* ((powershell-program (executable-find "powershell.exe")))
+    (cond
+     ((and (memq system-type '(gnu gnu/linux gnu/kfreebsd))
+           powershell-program)
+      (string-trim-right
+       (with-output-to-string
+         (with-current-buffer standard-output
+           (call-process powershell-program nil t nil "-command" "Get-Clipboard")))))
+     (t
+      (xclip-get-selection 'clipboard)))))
 
 (defun my-pclip (str-val)
+  (let* ((win64-clip-program (executable-find "clip.exe")))
     (cond
-     (simpleclip-works
-      (simpleclip-set-contents str-val))
-     ((eq system-type 'darwin)
+     ((and win64-clip-program (memq system-type '(gnu gnu/linux gnu/kfreebsd)))
       (with-temp-buffer
         (insert str-val)
-        (call-process-region (point-min) (point-max) "/usr/bin/pbcopy")))
-     ((eq system-type 'cygwin)
-      (with-temp-buffer
-        (insert str-val)
-        (call-process-region (point-min) (point-max) "putclip")))
-     ((memq system-type '(gnu gnu/linux gnu/kfreebsd))
-      (let* ((win64-clip-program (executable-find "clip.exe")))
-        (with-temp-buffer
-          (insert str-val)
-          (cond
-           ;; Linux Subsystem on Windows 10
-           (win64-clip-program
-            (call-process-region (point-min) (point-max) win64-clip-program))
-           (t
-            (call-process-region (point-min) (point-max) "xsel" nil nil nil "--clipboard" "--input"))))))))
+        (call-process-region (point-min) (point-max) win64-clip-program)))
+     (t
+      (xclip-set-selection 'clipboard str-val)))))
 ;; }}
 
 (defun make-concated-string-from-clipboard (concat-char)
@@ -434,5 +316,27 @@ you can '(setq my-mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
 (defun should-use-minimum-resource ()
   (and buffer-file-name
        (string-match-p "\.\\(mock\\|min\\)\.js" buffer-file-name)))
+
+(defun my-async-shell-command (command)
+  "Execute string COMMAND asynchronously."
+  (let* ((proc (start-process "Shell"
+                              nil
+                              shell-file-name
+                              shell-command-switch command)))
+    (set-process-sentinel proc `(lambda (process signal)
+                                  (let* ((status (process-status process)))
+                                    (when (memq status '(exit signal))
+                                      (unless (string= (substring signal 0 -1) "finished")
+                                        (message "Failed to run \"%s\"." ,command))))))))
+
+(defvar f-count nil)
+(defun f-incf (&optional first incr repeat)
+  (let* ((index (floor (/ (cl-incf f-count incr) (or repeat 1)))))
+    (+ (or first 1) (* (or incr 1) index))))
+
+(defun f-each (ls &optional repeat)
+  (let ((index (floor (/ (cl-incf f-count 0) (or repeat 1)))))
+    (if (< index (length ls)) (elt ls index)
+      (keyboard-quit))))
 
 (provide 'init-utils)
