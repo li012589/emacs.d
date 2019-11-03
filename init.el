@@ -124,11 +124,12 @@
   (require 'init-company)
   (require 'init-chinese) ;; cannot be idle-required
   ;; need statistics of keyfreq asap
-  (require-init 'init-keyfreq)
-  (require-init 'init-httpd)
-  (require-init 'init-theme)
-  (require-init 'init-julia)
-  (require-init 'init-rust)
+  (require 'init-keyfreq)
+  (require 'init-httpd)
+  (require 'init-theme)
+  (require 'init-julia)
+  (require 'init-rust)
+  (require 'init-auctex)
   (require 'init-httpd)
 
   ;; projectile costs 7% startup time

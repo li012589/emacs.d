@@ -109,6 +109,7 @@
     julia-mode
     julia-repl
     rust-mode
+    auctex
     )
   "Packages to install from melpa-unstable.")
 
@@ -120,7 +121,7 @@
 (setq package-archives
       '(("localelpa" . "~/.emacs.d/localelpa/")
         ;; uncomment below line if you need use GNU ELPA
-        ;; ("gnu" . "https://elpa.gnu.org/packages/")
+        ("gnu" . "https://elpa.gnu.org/packages/")
         ("melpa" . "https://melpa.org/packages/")
         ("melpa-stable" . "https://stable.melpa.org/packages/")
 
@@ -342,6 +343,7 @@ PACKAGE is a symbol, VERSION is a vector as produced by `version-to-list', and
 (require-package 'julia-mode)
 (require-package 'julia-repl)
 (require-package 'rust-mode)
+(require-package 'auctex)
 
 
 ;; {{ @see https://pawelbx.github.io/emacs-theme-gallery/
