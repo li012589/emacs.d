@@ -131,6 +131,7 @@
   (require 'init-rust)
   (require 'init-auctex)
   (require 'init-httpd)
+  (require 'init-refs)
 
   ;; projectile costs 7% startup time
 

@@ -111,6 +111,8 @@
     rust-mode
     auctex
     move-text
+    org-ref
+    ivy-bibtex
     )
   "Packages to install from melpa-unstable.")
 
@@ -346,6 +348,8 @@ PACKAGE is a symbol, VERSION is a vector as produced by `version-to-list', and
 (require-package 'rust-mode)
 (require-package 'auctex)
 (require-package 'move-text)
+(require-package 'org-ref)
+(require-package 'ivy-bibtex)
 
 
 ;; {{ @see https://pawelbx.github.io/emacs-theme-gallery/
