@@ -1,5 +1,9 @@
 * OKay, this is my fork of emacs.d
-yep, it's originally from redguard2's emacs.d.
+
+extra set-up:
+
+- Install pdftotext for org-ref;
+- Speify your bib note and pdf path in lisp/init-ref.el
 
 * Features
 - Fast. Start up in *one second*
