@@ -1,38 +1,57 @@
-(setq bibPath '("~/Documents/refs/references.bib"))
-(setq notePath '("~/Documents/refs/notes.org"))
-(setq pdfPath '("~/Documents/papers"))
+(require 'parsebib)
+;; setting reftex
+(setq reftex-default-bibliography '("~/Documents/refs/references.bib"))
 
-(setq reftex-default-bibliography 'bibPath)
-
+;; key binding for ivy-bibtex
+(global-set-key (kbd "C-c C-r") 'ivy-bibtex)
 ;; see org-ref for use of these variables
-(setq org-ref-bibliography-notes 'notePath
-      org-ref-default-bibliography 'bibPath
-      org-ref-pdf-directory 'pdfPath)
+(setq org-ref-bibliography-notes "~/Documents/refs/notes.org"
+      org-ref-default-bibliography `("~/Documents/refs/references.bib")
+      org-ref-pdf-directory "~/Documents/papers")
 
-(setq bibtex-completion-bibliography 'bibPath)
+;; setting ivy-bibtex/helm-bibtex
+(setq bibtex-completion-bibliography `("~/Documents/refs/references.bib"))
 
-(setq bibtex-completion-library-path 'pdfPath)
-(setq bibtex-completion-notes-path 'notePath)
+(setq bibtex-completion-library-path '("~/Documents/papers"))
+(setq bibtex-completion-notes-path "~/Documents/refs/notes.org")
+
+;; ignore ignores the order of regexp tokens when searching for matching candidates
+(setq ivy-re-builders-alist
+      '((ivy-bibtex . ivy--regex-ignore-order)
+        (t . ivy--regex-plus)))
 
 (setq bibtex-completion-pdf-open-function
   (lambda (fpath)
     (start-process "open" "*open*" "open" fpath)))
 
+;; setting forend for completion of org-ref
+(setq org-ref-completion-library 'org-ref-ivy-cite)
+(require 'org-ref)
+
 (setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
 
-(setq bibtex-completion-display-formats
-    '((article       . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:36} ${title:*} ${journal:40}")
-      (inbook        . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:36} ${title:*} Chapter ${chapter:32}")
-      (incollection  . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
-      (inproceedings . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
-      (t             . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:36} ${title:*}")))
-
+;; see https://github.com/tmalsburg/helm-bibtex
 ;; (setq bibtex-completion-additional-search-fields '(keywords))
+(setq bibtex-completion-additional-search-fields '(journal booktitle))
+;; display form of ivy-bibtex
+(setq bibtex-completion-display-formats
+    '((article       . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:15} ${title:*} ${journal:10}")
+      (inbook        . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:15} ${title:*} Chapter ${chapter:10}")
+      (incollection  . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:15} ${title:*} ${booktitle:10}")
+      (inproceedings . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:15} ${title:*} ${booktitle:10}")
+      (t             . "${=has-pdf=:1}${=has-note=:1} ${=type=:3} ${year:4} ${author:15} ${title:*}")))
+;;symbols for display
+(setq bibtex-completion-pdf-symbol "⌘")
+(setq bibtex-completion-notes-symbol "✎")
+
+;; Use pdf link for org citation
+(setq bibtex-completion-format-citation-functions
+  '((org-mode      . bibtex-completion-format-citation-org-link-to-PDF)
+    (latex-mode    . bibtex-completion-format-citation-cite)
+    (markdown-mode . bibtex-completion-format-citation-pandoc-citeproc)
+    (default       . bibtex-completion-format-citation-default)))
 
 (setq org-ref-completion-library 'org-ref-ivy-cite)
-
-(require 'doi-utils)
-(require 'org-ref-arxiv)
-
+;;(setq ivy-bibtex-default-action 'bibtex-completion-insert-citation)
 
 (provide 'init-refs)
