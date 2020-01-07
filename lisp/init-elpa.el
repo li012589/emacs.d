@@ -113,6 +113,7 @@
     move-text
     org-ref
     ivy-bibtex
+    parsebib
     )
   "Packages to install from melpa-unstable.")
 
@@ -122,7 +123,7 @@
 ;; I don't use any packages from GNU ELPA because I want to minimize
 ;; dependency on 3rd party web site.
 (setq package-archives
-      '(("localelpa" . "~/.emacs.d/localelpa/")
+      '(;;("localelpa" . "~/.emacs.d/localelpa/")
         ;; uncomment below line if you need use GNU ELPA
         ("gnu" . "https://elpa.gnu.org/packages/")
         ("melpa" . "https://melpa.org/packages/")
@@ -152,7 +153,7 @@
            (yes-or-no-p "Switch to faster package repositories in China temporarily?
 You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use this ELPA mirror."))
   (setq package-archives
-        '(("localelpa" . "~/.emacs.d/localelpa/")
+        '(;;("localelpa" . "~/.emacs.d/localelpa/")
           ("melpa" . "https://mirrors.163.com/elpa/melpa/")
           ("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/"))))
 
@@ -350,6 +351,7 @@ PACKAGE is a symbol, VERSION is a vector as produced by `version-to-list', and
 (require-package 'move-text)
 (require-package 'org-ref)
 (require-package 'ivy-bibtex)
+(require-package 'parsebib)
 
 
 ;; {{ @see https://pawelbx.github.io/emacs-theme-gallery/
