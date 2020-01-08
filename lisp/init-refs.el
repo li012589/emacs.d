@@ -2,8 +2,10 @@
 ;; setting reftex
 (setq reftex-default-bibliography '("~/Documents/refs/references.bib"))
 
-;; key binding for ivy-bibtex
+;; key binding for ivy-bibtex, open notes.
 (global-set-key (kbd "C-c C-r") 'ivy-bibtex)
+(global-set-key (kbd "C-c C-i") 'org-ref-open-bibtex-notes)
+
 ;; see org-ref for use of these variables
 (setq org-ref-bibliography-notes "~/Documents/refs/notes.org"
       org-ref-default-bibliography `("~/Documents/refs/references.bib")
