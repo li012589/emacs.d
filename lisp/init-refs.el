@@ -1,3 +1,10 @@
+;; Useful note:
+;; - https://people.umass.edu/weikaichen/post/emacs-academic-tools/
+;; - https://www.anand-iyer.com/blog/2017/research-literature-management-with-emacs.html
+;; - https://nasseralkmim.github.io/notes/2016/08/21/my-latex-environment/
+;; - 
+
+;; This is a temp fix for a bug in org-ref, which has been fixed but not make it to stable ver.
 (require 'parsebib)
 ;; setting reftex
 (setq reftex-default-bibliography '("~/Documents/refs/references.bib"))
