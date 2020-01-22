@@ -41,10 +41,9 @@
 ;; (setq ivy-use-virtual-buffers t)
 (global-set-key (kbd "C-c C-r") 'ivy-resume)
 (global-set-key (kbd "C-x b") 'ivy-switch-buffer)
-(global-set-key (kbd "C-c d") 'ivy-immediate-done)
 
 (define-key read-expression-map (kbd "C-r") 'counsel-expression-history)
-
+(define-key ivy-minibuffer-map (kbd "C-j") 'ivy-immediate-done)
 ;; {{ @see http://oremacs.com/2015/04/19/git-grep-ivy/
 (defun counsel-read-keyword (hint &optional default-when-no-active-region)
   (let* (keyword)
