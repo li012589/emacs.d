@@ -132,6 +132,7 @@
   (require 'init-auctex)
   (require 'init-httpd)
   (require 'init-refs)
+  (require 'init-pdf)
 
   ;; projectile costs 7% startup time
 

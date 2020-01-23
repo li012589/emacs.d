@@ -114,6 +114,7 @@
     org-ref
     ivy-bibtex
     parsebib
+    pdf-tools
     )
   "Packages to install from melpa-unstable.")
 
@@ -348,6 +349,7 @@ PACKAGE is a symbol, VERSION is a vector as produced by `version-to-list', and
 (require-package 'julia-repl)
 (require-package 'rust-mode)
 (require-package 'auctex)
+(require-package 'pdf-tools)
 (require-package 'move-text)
 (require-package 'org-ref)
 (require-package 'ivy-bibtex)
