@@ -205,6 +205,11 @@ It's value could be customized liked \"/usr/bin/firefox\".
                                      (sequence "WAITING(w@/!)" "SOMEDAY(S)" "PROJECT(P@)" "|" "CANCELLED(c@/!)")))
            org-imenu-depth 9
            ;; @see http://irreal.org/blog/1
-           org-src-fontify-natively t)))
+           org-src-fontify-natively t)
+
+     ;; setup org-agenda-files to inlcude org-refs' note file
+     (setq org-agenda-files (list "~/Documents/refs/notes.org"))))
+
+
 
 (provide 'init-org)
