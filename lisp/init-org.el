@@ -84,7 +84,7 @@
      (unless (featurep 'org-clock) (require 'org-clock))
 
      ;; org-re-reveal requires org 8.3 while Emacs 25 uses org 8.2
-     (when (and *emacs26* (not (featurep 'org-re-reveal)))
+     (when (and *emacs27* (not (featurep 'org-re-reveal)))
        (require 'org-re-reveal))
 
      ;; odt export

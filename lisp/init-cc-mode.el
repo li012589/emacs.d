@@ -1,12 +1,5 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(defun c-wx-lineup-topmost-intro-cont (langelem)
-  (save-excursion
-    (beginning-of-line)
-    (if (re-search-forward "EVT_" (line-end-position) t)
-      'c-basic-offset
-      (c-lineup-topmost-intro-cont langelem))))
-
 ;; avoid default "gnu" style, use more popular one
 (setq c-default-style '((java-mode . "java")
                         (awk-mode . "awk")
@@ -18,9 +11,10 @@
   ;; new value
   (add-to-list 'c-offsets-alist '(key . val)))
 
+(setq-default c-basic-offset 4)
+
 (defun my-common-cc-mode-setup ()
   "setup shared by all languages (java/groovy/c++ ...)"
-  (setq c-basic-offset 4)
   ;; give me NO newline automatically after electric expressions are entered
   (setq c-auto-newline nil)
 
@@ -48,44 +42,22 @@
 
   (setq cc-search-directories '("." "/usr/include" "/usr/local/include/*" "../*/include" "$WXWIN/include"))
 
-  ;; {{ @see https://github.com/redguardtoo/cpputils-cmake
-  ;; In theory, you can write your own Makefile for `flyamke-mode' without cmake.
+  ;; @see https://github.com/redguardtoo/cpputils-cmake
+  ;; In theory, you can write your own Makefile for `flymake-mode' without cmake.
   ;; Nobody actually does it in real world.
-  ;; So make sure cmake is used before uncomment below code.
 
-  ;; (when buffer-file-name
-  ;;   (flymake-mode 1)
-  ;;   (when (and (executable-find "cmake")
-  ;;              (not (string-match-p "^\\(/usr/local/include\\|/usr/src/linux/include\\)/.*"
-  ;;                                   buffer-file-name)))
-  ;;     (cppcm-reload-all)))
-
-  ;; }}
-
-  ;; wxWidgets setup
-  (c-set-offset 'topmost-intro-cont 'c-wx-lineup-topmost-intro-cont)
-
-  ;; debugging Emacs c code
-  (add-to-list 'imenu-generic-expression '(nil "^DEFUN *(\"\\([a-zA-Z0-9-]+\\)" 1))
+  ;; debugging Emacs C code
+  (push '(nil "^DEFUN *(\"\\([a-zA-Z0-9-]+\\)" 1) imenu-generic-expression )
 
   ;; make a #define be left-aligned
   (setq c-electric-pound-behavior (quote (alignleft))))
 
-;; donot use c-mode-common-hook or cc-mode-hook because many major-modes use this hook
 (defun c-mode-common-hook-setup ()
+  "C/C++ setup."
   (unless (is-buffer-file-temp)
     (my-common-cc-mode-setup)
     (unless (or (derived-mode-p 'java-mode) (derived-mode-p 'groovy-mode))
-      (my-c-mode-setup))
-
-    ;; gtags (GNU global) stuff
-    (when (and (executable-find "global")
-               ;; `man global' to figure out why
-               (not (string-match-p "GTAGS not found"
-                                    (shell-command-to-string "global -p"))))
-      ;; emacs 24.4+ will set up eldoc automatically.
-      ;; so below code is NOT needed.
-      (eldoc-mode 1))))
+      (my-c-mode-setup))))
 (add-hook 'c-mode-common-hook 'c-mode-common-hook-setup)
 
 (provide 'init-cc-mode)

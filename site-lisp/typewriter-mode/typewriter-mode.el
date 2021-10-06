@@ -27,14 +27,19 @@
 (defcustom twm/sound-file
   "typewriter-key-modern.wav"
   "Sound file."
+  :type 'string
   :group 'typewriter-mode)
 
 (defcustom twm/play-command
-  (case system-type
-    ('darwin "afplay %s")
-    ('windows-nt "powershell -c (New-Object Media.SoundPlayer \"%s\").PlaySync();")
-    ('gnu/linux "aplay %s"))
-  "Command to play sound file."
+  nil
+  "Command to play sound file.  It's automatically set if nil."
+  :type 'string
+  :group 'typewriter-mode)
+
+(defcustom twm/quiet-major-modes
+  nil
+  "Major modes to be quiet."
+  :type '(repeat sexp)
   :group 'typewriter-mode)
 
 (defconst twm/sound-file-dir
@@ -42,9 +47,24 @@
   "The directory of sound files.")
 
 (defun twm/play-typewriter-sound ()
-  (start-process-shell-command
-   "*play-typewriter-sound*" nil
-   (format twm/play-command (concat twm/sound-file-dir twm/sound-file))))
+  "Play sound."
+  (unless (and twm/quiet-major-modes
+               (apply 'derived-mode-p twm/quiet-major-modes))
+    (let* ((cmd twm/play-command))
+      ;; guess player
+      (unless cmd
+        (setq cmd
+              (cond
+               ((eq system-type 'darwin)
+                "afplay %s")
+               ((eq system-type 'windows-nt)
+                "powershell -c (New-Object Media.SoundPlayer \"%s\").PlaySync();")
+               ((eq system-type 'gnu/linux)
+                ;; pulseaudio or alsa
+                (if (executable-find "paplay") "paplay %s" "aplay %s")))))
+      (start-process-shell-command
+       "*play-typewriter-sound*" nil
+       (format cmd (concat twm/sound-file-dir twm/sound-file))))))
 
 (defun twm/toggle-sound-style ()
   "Change typewriter sound between vintage and modern."
@@ -54,14 +74,6 @@
                                  (if is-vintage "modern" "vintage")))))
 
 ;;;###autoload
-(defun turn-on-typewriter-mode ()
-  (add-hook 'post-self-insert-hook #'twm/play-typewriter-sound))
-
-;;;###autoload
-(defun turn-off-typewriter-mode ()
-  (remove-hook 'post-self-insert-hook #'twm/play-typewriter-sound))
-
-;;;###autoload
 (define-minor-mode typewriter-mode
   "Toggle typewriter-mode"
   nil
@@ -69,9 +81,11 @@
   ;; keymap
   nil
   :global t
-  (if typewriter-mode
-      (turn-on-typewriter-mode)
-    (turn-off-typewriter-mode)))
+  (cond
+   (typewriter-mode
+    (add-hook 'post-self-insert-hook #'twm/play-typewriter-sound))
+   (t
+    (remove-hook 'post-self-insert-hook #'twm/play-typewriter-sound))))
 
 (provide 'typewriter-mode)
 ;;; typewriter-mode.el ends here

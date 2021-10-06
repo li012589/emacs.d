@@ -3,14 +3,14 @@
 (local-require 'keyfreq)
 
 (defun turnon-keyfreq-mode ()
+  "Turn on keyfreq."
   (interactive)
-  (keyfreq-mode 1)
-  (keyfreq-autosave-mode 1))
+  ;; Fire up keyfreq a few seconds later to start up emacs faster
+  (my-run-with-idle-timer 4 (lambda ()
+                               (keyfreq-mode 1)
+                               (keyfreq-autosave-mode 1))))
 
-(defun turnoff-keyfreq-mode ()
-  (interactive)
-  (keyfreq-mode -1)
-  (keyfreq-autosave-mode -1))
+(with-eval-after-load 'keyfreq
 
 (setq keyfreq-excluded-commands
       '(self-insert-command
@@ -34,10 +34,11 @@
         dired ; nothing to optimize in dired
         dired-do-async-shell-command
         dired-find-file
+        dired-next-line
+        dired-previous-line
         diredp-next-line
         diredp-previous-line
         electric-pair-delete-pair
-        erase-message-buffer
         eval-buffer
         evil-a-WORD
         evil-append
@@ -115,6 +116,7 @@
         ffip
         forward-char
         forward-word
+        general-dispatch-self-insert-command-4
         gnus
         gnus-summary-exit
         gnus-summary-next-page
@@ -158,6 +160,8 @@
         keyfreq-show
         kill-sentence
         left-char
+        magit-next-line
+        magit-previous-line
         markdown-exdent-or-delete
         markdown-outdent-or-delete
         minibuffer-complete
@@ -194,6 +198,7 @@
         push-button
         pwd
         quit-window
+        recenter-top-bottom
         right-char
         rjsx-electric-gt
         rjsx-electric-lt
@@ -212,11 +217,15 @@
         select-window-8
         select-window-9
         self-insert-command
+        shellcop-erase-buffer
         smarter-move-beginning-of-line
         suspend-frame
         term-send-raw
         turnon-keyfreq-mode
+        typescript-insert-and-indent
         undefined ;; lambda function
+        undo-fu-only-redo
+        undo-fu-only-undo
         undo-tree-redo
         undo-tree-undo
         w3m-goto-url
@@ -240,10 +249,7 @@
         yas-next-field-or-maybe-expand
         ))
 
-(unless (file-exists-p (file-truename keyfreq-file))
-  (with-temp-buffer
-    (insert "()")
-    (write-file (file-truename keyfreq-file))))
+  (my-write-to-missing-file "()" keyfreq-file))
 
 ;; And use keyfreq-show to see how many times you used a command.
 ;; It's recommended to use `keyfreq-mode' (could be in "~/.custom.el").

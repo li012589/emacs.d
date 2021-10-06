@@ -1,4 +1,5 @@
 request/
+.cache
 .depend
 pyim/
 anaconda-mode/
@@ -30,6 +31,7 @@ cookies
 \#*
 /elpa
 eshell/
+eln-cache/
 semanticdb/
 *.swp
 *~
@@ -41,7 +43,7 @@ TAGS
 GTAGS
 GPATH
 GRTAGS
-.emacs.d/emms/
+emms/
 tutorial/
 /var
 org-clock-save.el
@@ -65,3 +67,7 @@ network-security.data
 *.mp4
 *.ogg
 nov-places
+transient/
+elpy/
+package-quickstart.el
+.lsp-session*

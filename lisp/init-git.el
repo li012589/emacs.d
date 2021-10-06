@@ -2,9 +2,8 @@
 
 ;; ;; {{ Solution 1: disable all vc backends
 ;; @see http://stackoverflow.com/questions/5748814/how-does-one-disable-vc-git-in-emacs
-;; (setq vc-handled-backends ())
+;; (setq vc-handled-backends nil)
 ;; }}
-
 
 ;; {{ Solution 2: if NO network mounted drive involved
 (setq vc-handled-backends '(Git SVN Hg))
@@ -14,52 +13,119 @@
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
 ;; }}
 
-;; ;; {{ Solution 3: setup vc-handled-backends per project
-;; (setq vc-handled-backends ())
+;; ;; {{ Solution 3: setup `vc-handled-backends' per project
+;; (setq vc-handled-backends nil)
 ;; (defun my-setup-develop-environment ()
+;;   "Default setup for project under vcs."
 ;;   (interactive)
 ;;   (cond
-;;    ((string-match-p (file-truename "~/.emacs.d") (file-name-directory (buffer-file-name))
-;;     (setq vc-handled-backends '(Git)))
-;;    (t (setq vc-handled-backends nil)))))
-;; (add-hook 'java-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'emacs-lisp-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'org-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'js2-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'js-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'javascript-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'web-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'c++-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'c-mode-hook 'my-setup-develop-environment)
+;;     ((string-match-p (file-truename user-emacs-directory)
+;;                      (file-name-directory (buffer-file-name)))
+;;       (setq vc-handled-backends '(Git)))
+;;     (t
+;;       (setq vc-handled-backends nil))))
+;; (dolist (hook '(java-mode-hook emacs-lisp-mode-hook org-mode-hook
+;;                 js-mode-hook javascript-mode-hook web-mode-hook
+;;                 c++-mode-hook c-mode-hook))
+;;   (add-hook hook #'my-setup-develop-environment))
 ;; ;; }}
 
 ;; {{ git-gutter
-(local-require 'git-gutter)
+(with-eval-after-load 'git-gutter
+  (unless (fboundp 'global-display-line-numbers-mode)
+    ;; git-gutter's workaround for linum-mode bug.
+    ;; should not be used in `display-line-number-mode'
+    (git-gutter:linum-setup))
 
-(defun git-gutter-reset-to-head-parent()
+  (setq git-gutter:update-interval 2)
+  ;; nobody use bzr
+  ;; I could be forced to use subversion or hg which has higher priority
+  ;; Please note my $HOME directory is under git control
+  (setq git-gutter:handled-backends '(svn hg git))
+  (setq git-gutter:disabled-modes
+        '(asm-mode
+          org-mode
+          outline-mode
+          markdown-mode
+          image-mode)))
+
+(defun my-git-gutter-reset-to-head-parent()
+  "Reset gutter to HEAD^.  Support Subversion and Git."
   (interactive)
-  (let (parent (filename (buffer-file-name)))
-    (if (eq git-gutter:vcs-type 'svn)
-        (setq parent "PREV")
-      (setq parent (if filename (concat (shell-command-to-string (concat "git --no-pager log --oneline -n1 --pretty=\"format:%H\" " filename)) "^") "HEAD^")))
+  (let* ((filename (buffer-file-name))
+         (cmd (concat "git --no-pager log --oneline -n1 --pretty=\"format:%H\" "
+                      filename))
+         (parent (cond
+                  ((eq git-gutter:vcs-type 'svn)
+                   "PREV")
+                  (filename
+                   (concat (shell-command-to-string cmd) "^"))
+                  (t
+                   "HEAD^"))))
     (git-gutter:set-start-revision parent)
     (message "git-gutter:set-start-revision HEAD^")))
 
+(defvar my-prefer-lightweight-magit t)
+(defun my-hint-untracked-files ()
+  "If untracked files and committed files share same extension, warn users."
+
+  ;; don't scan whole home directory
+  (unless (string= (file-truename default-directory) (file-truename "~/"))
+    (let* ((exts (mapcar 'file-name-extension (my-lines-from-command-output "git diff-tree --no-commit-id --name-only -r HEAD")))
+           (untracked-files (my-lines-from-command-output "git --no-pager ls-files --others --exclude-standard"))
+           (lookup-ext (make-hash-table :test #'equal))
+           rlt)
+      ;; file extensions of files in HEAD commit
+      (dolist (ext exts)
+        (puthash ext t lookup-ext))
+      ;; If untracked file has same file extension as committed files
+      ;; maybe they should be staged too?
+      (dolist (file untracked-files)
+        (when (gethash (file-name-extension file) lookup-ext)
+          (push (file-name-nondirectory file) rlt)))
+      (when rlt
+        (message "Stage files? %s" (mapconcat 'identity rlt " "))))))
+
+(with-eval-after-load 'magit
+  ;; {{speed up magit, @see https://jakemccrary.com/blog/2020/11/14/speeding-up-magit/
+  (when my-prefer-lightweight-magit
+    (remove-hook 'magit-status-sections-hook 'magit-insert-tags-header)
+    (remove-hook 'magit-status-sections-hook 'magit-insert-status-headers)
+    (remove-hook 'magit-status-sections-hook 'magit-insert-unpushed-to-pushremote)
+    (remove-hook 'magit-status-sections-hook 'magit-insert-unpulled-from-pushremote)
+    (remove-hook 'magit-status-sections-hook 'magit-insert-unpulled-from-upstream)
+    (remove-hook 'magit-status-sections-hook 'magit-insert-unpushed-to-upstream-or-recent))
+  ;; }}
+
+  ;; "Continue listing the history of a file beyond renames (works only for a single file)."
+  ;; - quoted from "git help log"
+  (setq-default magit-buffer-log-args '("--follow"))
+
+  ;; extra check&report after commit
+  (defun my-git-check-status ()
+    "Check git repo status."
+    ;; use timer here to wait magit cool down
+    (my-run-with-idle-timer 1 #'my-hint-untracked-files))
+  (add-hook 'magit-post-commit-hook #'my-git-check-status)
+  (add-hook 'git-commit-post-finish-hook #'my-git-check-status))
+
+(defun git-gutter-toggle ()
+  "Toggle git gutter."
+  (interactive)
+  (git-gutter-mode -1)
+  ;; git-gutter-fringe doesn't seem to
+  ;; clear the markup right away
+  (sit-for 0.1)
+  (git-gutter:clear))
+
 (defun git-gutter-reset-to-default ()
+  "Restore git gutter to its original status.
+Show the diff between current working code and git head."
   (interactive)
   (git-gutter:set-start-revision nil)
   (message "git-gutter reset"))
 
-(global-git-gutter-mode t)
-
-;; nobody use bzr
-;; I could be forced to use subversion or hg which has higher priority
-(custom-set-variables '(git-gutter:handled-backends '(svn hg git)))
-
-(unless (fboundp 'global-display-line-numbers-mode)
- ;; git-gutter's workaround for linum-mode bug.
- ;; should not be used in `display-line-number-mode`
- (git-gutter:linum-setup))
+(my-run-with-idle-timer 2 #'global-git-gutter-mode)
 
 (global-set-key (kbd "C-x C-g") 'git-gutter:toggle)
 (global-set-key (kbd "C-x v =") 'git-gutter:popup-hunk)
@@ -67,7 +133,28 @@
 (global-set-key (kbd "C-x v s") 'git-gutter:stage-hunk)
 ;; Revert current hunk
 (global-set-key (kbd "C-x v r") 'git-gutter:revert-hunk)
+
 ;; }}
+
+(defun my-git-commit-id ()
+  "Select commit id from current branch."
+  (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
+         (collection (nonempty-lines (shell-command-to-string git-cmd)))
+         (item (completing-read "git log:" collection)))
+    (when item
+      (car (split-string item "|" t)))))
+
+(defun my-git-show-commit-internal ()
+  "Show git commit."
+  (let* ((id (my-git-commit-id)))
+    (when id
+      (shell-command-to-string (format "git show %s" id)))))
+
+(defun my-git-show-commit ()
+  "Show commit using ffip."
+  (interactive)
+  (let* ((ffip-diff-backends '(("Show git commit" . my-git-show-commit-internal))))
+    (ffip-show-diff 0)))
 
 ;; {{ git-timemachine
 (defun my-git-timemachine-show-selected-revision ()
@@ -88,8 +175,7 @@
 (defun my-git-timemachine ()
   "Open git snapshot with the selected version."
   (interactive)
-  (unless (featurep 'git-timemachine)
-    (require 'git-timemachine))
+  (my-ensure 'git-timemachine)
   (git-timemachine--start #'my-git-timemachine-show-selected-revision))
 ;; }}
 
@@ -123,7 +209,7 @@
      ((and msg (> (length msg) 3))
       (shell-command "git add -u")
       (shell-command (format "git commit -m \"%s\"" msg))
-      (message "Tracked files is commited."))
+      (message "Tracked files is committed."))
      (t
       (message "Do nothing!")))))
 
@@ -135,27 +221,132 @@
       (shell-command (concat "git add " filename))
       (message "DONE! git add %s" filename))))
 
-;; {{ goto next/previous hunk
-(defun my-goto-next-hunk (arg)
-  (interactive "p")
-  (if (memq major-mode '(diff-mode))
-      (diff-hunk-next)
-    (forward-line)
-    (if (re-search-forward "\\(^<<<<<<<\\|^=======\\|^>>>>>>>\\)" (point-max) t)
-        (goto-char (line-beginning-position))
-      (forward-line -1)
-      (git-gutter:next-hunk arg))))
+;; {{ look up merge conflict
+(defvar my-goto-merge-conflict-fns
+  '(("n" my-next-merge-conflict)
+    ("p" my-prev-merge-conflict)))
 
-(defun my-goto-previous-hunk (arg)
-  (interactive "p")
-  (if (memq major-mode '(diff-mode))
-      (diff-hunk-prev)
-    (forward-line -1)
-    (if (re-search-backward "\\(^>>>>>>>\\|^=======\\|^<<<<<<<\\)" (point-min) t)
-        (goto-char (line-beginning-position))
-      (forward-line -1)
-      (git-gutter:previous-hunk arg))))
+(defun my-goto-merge-conflict-internal (forward-p)
+  "Goto specific hunk.  If forward-p is t, go in forward direction."
+  ;; @see https://emacs.stackexchange.com/questions/63413/finding-git-conflict-in-the-same-buffer-if-cursor-is-at-end-of-the-buffer#63414
+  (my-ensure 'smerge-mode)
+  (let ((buffer (current-buffer))
+        (hunk-fn (if forward-p 'smerge-next 'smerge-prev)))
+    (unless (funcall hunk-fn)
+      (vc-find-conflicted-file)
+      (when (eq buffer (current-buffer))
+        (let ((prev-pos (point)))
+          (goto-char (if forward-p (point-min) (1- (point-max))))
+          (unless (funcall hunk-fn)
+            (goto-char prev-pos)
+            (message "No conflicts found")))))))
+
+(defun my-next-merge-conflict ()
+  "Go to next merge conflict."
+  (interactive)
+  (my-goto-merge-conflict-internal t))
+
+(defun my-prev-merge-conflict ()
+  "Go to previous merge conflict."
+  (interactive)
+  (my-goto-merge-conflict-internal nil))
+
+(defun my-search-next-merge-conflict ()
+  "Search next merge conflict."
+  (interactive)
+  (my-setup-extra-keymap my-goto-merge-conflict-fns
+                         "Goto merge conflict: [n]ext [p]revious [q]uit"
+                         'my-goto-merge-conflict-internal
+                         t))
+
+(defun my-search-prev-merge-conflict ()
+  "Search previous merge conflict."
+  (interactive)
+  (my-setup-extra-keymap my-goto-merge-conflict-fns
+                         "Goto merge conflict: [n]ext [p]revious [q]uit"
+                         'my-goto-merge-conflict-internal
+                         nil))
 ;; }}
+
+;; {{ look up diff hunk
+(defvar my-goto-diff-hunk-fns
+  '(("n" diff-hunk-next)
+    ("p" diff-hunk-prev)))
+
+(defun my-search-next-diff-hunk ()
+  "Search next diff hunk."
+  (interactive)
+  (my-setup-extra-keymap my-goto-diff-hunk-fns
+                         "Goto diff hunk: [n]ext [p]revious [q]uit"
+                         'diff-hunk-next))
+
+(defun my-search-prev-diff-hunk ()
+  "Search previous diff hunk."
+  (interactive)
+  (my-setup-extra-keymap my-goto-diff-hunk-fns
+                         "Goto diff hunk: [n]ext [p]revious [q]uit"
+                         'diff-hunk-prev))
+;; }}
+
+;; {{
+(defun my-git-extract-based (target lines)
+  "Extract based version from TARGET."
+  (let* (based (i 0) break)
+    (while (and (not break) (< i (length lines)))
+      (cond
+       ((string-match (regexp-quote target) (nth i lines))
+        (setq break t))
+       (t
+        (setq i (1+ i)))))
+    ;; find child of target commit
+    (when (and (< 0 i)
+               (< i (length lines)))
+      (setq based
+            (replace-regexp-in-string "^tag: +"
+                                      ""
+                                      (car (split-string (nth (1- i) lines)
+                                                         " +")))))
+    based))
+
+(defun my-git-rebase-interactive (&optional user-select-branch)
+  "Rebase interactively on the closest branch or tag in git log output.
+If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
+  (interactive "P")
+  (let* ((cmd "git --no-pager log --decorate --oneline -n 1024")
+         (lines (my-lines-from-command-output cmd))
+         (targets (delq nil
+                        (mapcar (lambda (e)
+                                  (when (and (string-match "^[a-z0-9]+ (\\([^()]+\\)) " e)
+                                             (not (string-match "^[a-z0-9]+ (HEAD " e)))
+                                    (match-string 1 e)))
+                                lines)))
+         based)
+    (cond
+     ((or (not targets) (eq (length targets) 0))
+      (message "No tag or branch is found to base on."))
+     ((or (not user-select-branch)) (eq (length targets) 1)
+      ;; select the closest/only tag or branch
+      (setq based (my-git-extract-based (nth 0 targets) lines)))
+     (t
+      ;; select the one tag or branch
+      (setq based (my-git-extract-based (completing-read "Select based: " targets)
+                                        lines))))
+
+    ;; start git rebase
+    (when based
+      (magit-rebase-interactive based nil))))
+;; }}
+
+(defun my-git-cherry-pick-from-reflog ()
+  "Cherry pick a commit from git reflog."
+  (interactive)
+  (let* ((cmd "git --no-pager reflog --date=short")
+         (lines (my-lines-from-command-output cmd))
+         (selected (completing-read "Commit to cherry pick:" lines))
+         (commit-id (and selected (car (split-string selected)))))
+    (when commit-id
+      (my-ensure 'magit)
+      (magit-cherry-copy commit-id))))
 
 ;; {{ git-gutter use ivy
 (defun my-reshape-git-gutter (gutter)
@@ -196,39 +387,18 @@
 
 ;; }}
 
-(defun my-git-log-trace-definition ()
-  "Similar to `magit-log-trace-definition' but UI is simpler.
-If multi-lines are selected, trace the defintion of line range.
-If only one line is selected, use current selection as function name to look up.
-If nothing is selected, use the word under cursor as function name to look up."
-  (interactive)
-  (when buffer-file-name
-    (let* ((range-or-func (cond
-                           ((region-active-p)
-                            (cond
-                             ((my-is-one-line (region-beginning) (region-end))
-                              (format ":%s" (my-selected-str)))
-                             (t
-                              (format "%s,%s"
-                                      (line-number-at-pos (region-beginning))
-                                      (line-number-at-pos (region-end))))))
-                           (t
-                            (format ":%s" (thing-at-point 'symbol)))))
-           (cmd (format "git log -L%s:%s" range-or-func (file-truename buffer-file-name)))
-           (content (shell-command-to-string cmd)))
-      (when (string-match-p "no match" content)
-        ;; mark current function and try again
-        (mark-defun)
-        (setq range-or-func (format "%s,%s"
-                                    (line-number-at-pos (region-beginning))
-                                    (line-number-at-pos (region-end))))
-        (setq cmd (format "git log -L%s:%s" range-or-func (file-truename buffer-file-name))))
-      (message cmd)
-      (unless (featurep 'find-file-in-project) (require 'find-file-in-project))
-      (ffip-show-content-in-diff-mode (shell-command-to-string cmd)))))
-
-(eval-after-load 'magit
-  '(progn
-    (ivy-mode 1)))
+(defun my-git-find-file-in-commit (&optional level)
+  "Find file in previous commit with LEVEL.
+If LEVEL > 0, find file in previous LEVEL commit."
+  (interactive "P")
+  (my-ensure 'magit)
+  (let* ((rev (concat "HEAD" (if (and level (> level 0)) (make-string level ?^))))
+         (pretty (string-trim (shell-command-to-string (format "git --no-pager log %s --oneline --no-walk" rev))))
+         (prompt (format "Find file from commit [%s]: " pretty))
+         (cmd (my-git-files-in-rev-command rev level))
+         (default-directory (my-git-root-dir))
+         (file (completing-read prompt (my-lines-from-command-output cmd))))
+    (when file
+      (find-file file))))
 
 (provide 'init-git)
