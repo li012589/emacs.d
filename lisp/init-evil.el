@@ -21,9 +21,9 @@
             map)
   :init-value nil
   :global t)
-(undo-fu-mode 1)
-(define-key evil-normal-state-map "u" 'undo-fu-only-undo)
-(define-key evil-normal-state-map (kbd "C-r") 'undo-fu-only-redo)
+;;(undo-fu-mode 1)
+;;(define-key evil-normal-state-map "u" 'undo-fu-only-undo)
+;;(define-key evil-normal-state-map (kbd "C-r") 'undo-fu-only-redo)
 ;; }}
 
 ;; Store more undo history to prevent loss of data

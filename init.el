@@ -186,6 +186,7 @@
 (run-with-idle-timer 4 nil #'my-cleanup-gc)
 ;; load my perfered theme
 (load-theme 'molokai t)
+(global-undo-tree-mode 1)
 
 ;;; Local Variables:
 ;;; no-byte-compile: t
