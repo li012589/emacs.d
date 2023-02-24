@@ -1269,19 +1269,22 @@ Including indent-buffer, which should not be called automatically on save."
 
 ;; {{ easygpg setup
 ;; @see http://www.emacswiki.org/emacs/EasyPG#toc4
-(defadvice epg--start (around advice-epg-disable-agent disable)
-  "Make `epg--start' not able to find a gpg-agent."
-  (let ((agent (getenv "GPG_AGENT_INFO")))
-    (setenv "GPG_AGENT_INFO" nil)
-    ad-do-it
-    (setenv "GPG_AGENT_INFO" agent)))
+(with-eval-after-load 'epg
+    (defun my-epg--start-hack (orig-func &rest args)
+          "Make `epg--start' not able to find gpg-agent."
+              (let* ((agent (getenv "GPG_AGENT_INFO")))
+                      (setenv "GPG_AGENT_INFO" nil)
+                            (apply orig-func args)
+                                  (setenv "GPG_AGENT_INFO" agent)))
+      (advice-add 'epg--start :around #'my-epg--start-hack)
 
-(unless (string-match-p "^gpg (GnuPG) 1.4"
-                        (shell-command-to-string (format "%s --version" epg-gpg-program)))
+        (unless (string-match "^gpg (GnuPG) 1.4"
+                                                        (shell-command-to-string (format "%s --version" epg-gpg-program)))
 
-  ;; `apt-get install pinentry-tty` if using emacs-nox
-  ;; Create `~/.gnupg/gpg-agent.conf' container one line `pinentry-program /usr/bin/pinentry-curses`
-  (setq epa-pinentry-mode 'loopback))
+              ;; "apt-get install pinentry-tty" if using emacs-nox
+              ;; Create `~/.gnupg/gpg-agent.conf' which has one line
+              ;; "pinentry-program /usr/bin/pinentry-curses"
+              (setq epa-pinentry-mode 'loopback)))
 ;; }}
 
 ;; {{ show current function name in `mode-line'

@@ -49,7 +49,7 @@
     leuven-theme
     sublime-themes
     tangotango-theme
-    darkburn-theme
+    ;; darkburn-theme
     ujelly-theme
     afternoon-theme
     organic-green-theme
@@ -99,7 +99,7 @@
     pomodoro
     packed
     keyfreq
-    gitconfig-mode
+    git-modes
     textile-mode
     w3m
     workgroups2
@@ -115,6 +115,7 @@
     ivy-bibtex
     parsebib
     pdf-tools
+    kv
     )
   "Packages to install from melpa-unstable.")
 
@@ -237,8 +238,7 @@ PACKAGE is a symbol, VERSION is a vector as produced by `version-to-list', and
 (require-package 'ace-link)
 (require-package 'expand-region) ; I prefer stable version
 (require-package 'fringe-helper)
-(require-package 'gitignore-mode)
-(require-package 'gitconfig-mode)
+(require-package 'git-modes)
 (require-package 'gist)
 (require-package 'wgrep)
 (require-package 'request)
@@ -398,7 +398,7 @@ PACKAGE is a symbol, VERSION is a vector as produced by `version-to-list', and
   (require-package 'dracula-theme) ; recommended
   (require-package 'alect-themes)
   (require-package 'sublime-themes)
-  (require-package 'darktooth-theme)
+  ;; (require-package 'darktooth-theme)
   (require-package 'anti-zenburn-theme)
   (require-package 'gotham-theme)
   (require-package 'apropospriate-theme)
@@ -418,7 +418,7 @@ PACKAGE is a symbol, VERSION is a vector as produced by `version-to-list', and
   (require-package 'flatui-theme)
   (require-package 'hc-zenburn-theme)
   (require-package 'clues-theme)
-  (require-package 'darkburn-theme) ; recommended
+  ;; (require-package 'darkburn-theme) ; recommended
   (require-package 'soothe-theme)
   (require-package 'subatomic-theme)
   (require-package 'naquadah-theme)
