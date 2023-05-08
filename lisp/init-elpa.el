@@ -16,6 +16,7 @@
     auto-package-update
     nov
     bbdb
+    biblio
     evil-textobj-syntax
     command-log-mode
     vimrc-mode
