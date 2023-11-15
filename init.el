@@ -122,6 +122,7 @@
   (require-init 'init-julia)
   (require-init 'init-rust)
   (require-init 'init-auctex)
+  (require-init 'init-transpose-lines)
   ;;(require-init 'init-httpd)
   ;;(require-init 'init-refs)
   ;;(require-init 'init-pdf)
