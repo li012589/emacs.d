@@ -137,4 +137,7 @@
 ;; besides, scss/sass is outdated. We use postcss or css in js these days.
 (my-add-auto-mode 'css-mode "\\.scss\\'")
 
+;; add julia mode support
+(my-add-auto-mode 'julia-mode "\\.jl\\'")
+
 (provide 'init-file-type)
