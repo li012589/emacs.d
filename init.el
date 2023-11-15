@@ -98,7 +98,7 @@
   (require-init 'init-bookmark)
   (require-init 'init-ivy)
   (require-init 'init-windows)
-  (require-init 'init-javascript t)
+  ;;(require-init 'init-javascript t)
   (require-init 'init-org t)
   (require-init 'init-python t)
   (require-init 'init-lisp t)
@@ -119,9 +119,9 @@
   (require-init 'init-keyfreq)
   (require-init 'init-httpd)
   (require-init 'init-theme)
-  (require-init 'init-julia)
-  (require-init 'init-rust)
-  (require-init 'init-auctex)
+  ;;(require-init 'init-julia)
+  ;;(require-init 'init-rust)
+  ;;(require-init 'init-auctex)
   (require-init 'init-transpose-lines)
   ;;(require-init 'init-httpd)
   ;;(require-init 'init-refs)
@@ -131,7 +131,6 @@
 
   ;; don't play with color-theme in light weight mode
   ;; color themes are already installed in `init-elpa.el'
-  (require-init 'init-theme)
 
   ;; essential tools
   (require-init 'init-essential)
@@ -140,7 +139,7 @@
   (require-init 'init-dictionary t)
   (require-init 'init-emms t)
 
-  (require-init 'init-browser t)
+  ;;(require-init 'init-browser t)
   (require-init 'init-shackle t)
   (require-init 'init-dired t)
   (require-init 'init-writting t)
