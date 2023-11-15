@@ -21,6 +21,8 @@
                  ("code" (or (mode . emacs-lisp-mode)
                              (mode . cperl-mode)
                              (mode . c-mode)
+                             (mode . rust-mode)
+                             (mode . julia-mode)
                              (mode . java-mode)
                              (mode . idl-mode)
                              (mode . web-mode)
