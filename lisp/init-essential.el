@@ -302,4 +302,9 @@ If OTHER-SOURCE is 2, get keyword from `kill-ring'."
 ;; use undo-tree
 (global-undo-tree-mode)
 (provide 'init-essential)
+
+;;load Path from terminal on Mac OS or linux
+(when (memq window-system '(mac ns x))
+  (exec-path-from-shell-initialize)
+  (setq elpy-rpc-python-command "python3"))
 ;;; init-essential.el ends here
