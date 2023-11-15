@@ -160,6 +160,8 @@
     parsebib
     pdf-tools
     kv
+    anaconda-mode
+    company-anaconda
     )
   "Packages to install from melpa-unstable.")
 
@@ -366,6 +368,8 @@ If NO-REFRESH is nil, `package-refresh-contents' is called."
 
 (require-package 'julia-mode)
 (require-package 'julia-repl)
+(require-package 'anaconda-mode)
+(require-package 'company-anaconda)
 (require-package 'rust-mode)
 (require-package 'auctex)
 (require-package 'pdf-tools)
