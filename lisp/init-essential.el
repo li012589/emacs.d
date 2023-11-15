@@ -307,4 +307,7 @@ If OTHER-SOURCE is 2, get keyword from `kill-ring'."
 (when (memq window-system '(mac ns x))
   (exec-path-from-shell-initialize)
   (setq elpy-rpc-python-command "python3"))
+
+;; auto update etags after saving
+(add-hook 'after-save-hook 'counsel-etags-virtual-update-tags)
 ;;; init-essential.el ends here
