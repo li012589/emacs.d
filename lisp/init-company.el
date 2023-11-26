@@ -89,7 +89,7 @@ In that case, insert the number."
   ;; Press SPACE will accept the highlighted candidate and insert a space
   ;; "M-x describe-variable company-auto-complete-chars" for details.
   ;; So that's BAD idea.
-  (setq company-auto-complete t)
+  (setq company-auto-complete nil)
 
   ;; NOT to load company-mode for certain major modes.
   ;; Ironic that I suggested this feature but I totally forgot it

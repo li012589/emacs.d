@@ -309,5 +309,6 @@ If OTHER-SOURCE is 2, get keyword from `kill-ring'."
   (setq elpy-rpc-python-command "python3"))
 
 ;; auto update etags after saving
-(add-hook 'after-save-hook 'counsel-etags-virtual-update-tags)
+;; (add-hook 'after-save-hook 'counsel-etags-virtual-update-tags)
+
 ;;; init-essential.el ends here

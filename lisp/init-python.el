@@ -16,6 +16,7 @@
   ;; emacs 24.4+
   (setq electric-indent-chars (delq ?: electric-indent-chars)))
 
+
 ;; add auto completion backend to company-mode
 (defun company-anaconda-mode-setup ()
   (add-to-list 'company-backends 'company-anaconda))
