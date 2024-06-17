@@ -329,6 +329,17 @@ you can '(setq my-mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
                                       (unless (string= (substring signal 0 -1) "finished")
                                         (message "Failed to run \"%s\"." ,command))))))))
 
+(defvar my-disable-idle-timer (daemonp)
+  "Function passed to `my-run-with-idle-timer' is run immediately.")
+
+(defun my-run-with-idle-timer (seconds func)
+  "After SECONDS, run function FUNC once."
+  (cond
+   ((or my-disable-idle-timer my-lightweight-mode-p)
+    (funcall func))
+   (t
+    (run-with-idle-timer seconds nil func))))
+
 (defvar f-count nil)
 (defun f-incf (&optional first incr repeat)
   (let* ((index (floor (/ (cl-incf f-count incr) (or repeat 1)))))

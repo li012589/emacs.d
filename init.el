@@ -50,14 +50,17 @@
   (setq gc-cons-percentage 0.5)
   (run-with-idle-timer 5 t #'garbage-collect))
 
+;; Light weight mode, fewer packages are used.
+(setq my-lightweight-mode-p (and (boundp 'startup-now) (eq startup-now t)))
+
 (defmacro local-require (pkg)
   `(unless (featurep ,pkg)
      (load (expand-file-name
-             (cond
-               ((eq ,pkg 'go-mode-load)
-                (format "~/.emacs.d/site-lisp/go-mode/%s" ,pkg))
-               (t
-                 (format "~/.emacs.d/site-lisp/%s/%s" ,pkg ,pkg))))
+            (cond
+             ((eq ,pkg 'go-mode-load)
+              (format "~/.emacs.d/site-lisp/go-mode/%s" ,pkg))
+             (t
+              (format "~/.emacs.d/site-lisp/%s/%s" ,pkg ,pkg))))
            t t)))
 
 ;; *Message* buffer should be writable in 24.4+
@@ -131,7 +134,7 @@
   (require 'init-rust)
   (require 'init-auctex)
   (require 'init-httpd)
-  (require 'init-refs)
+  ;;(require 'init-refs)
   (require 'init-pdf)
 
   ;; projectile costs 7% startup time
