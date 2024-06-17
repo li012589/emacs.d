@@ -158,8 +158,12 @@
                               (my-random-favorite-color-theme))))
 
 (if (daemonp)
-	(add-hook 'after-make-frame-functions #'load-daemon-theme)
-  (load-theme 'molokai t))
+    (add-hook 'after-make-frame-functions (lambda (frame)
+                        (when (eq (length (frame-list)) 2)
+                            (progn
+                              (select-frame frame)
+                              (load-theme 'molokai)))))
+  (load-theme 'molokai 1))
 
 (provide 'init-theme)
 ;;; init-theme.el ends here
